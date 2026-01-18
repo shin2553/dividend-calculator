@@ -55,7 +55,9 @@ OUTPUT_PATH = os.path.join(DATA_DIR, "dividend_universe.json")
 
 MAX_Async_CONCURRENCY = 10 # Lowering further to avoid rate limits during heavy price history fetches
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
 }
 
 # (선택) 디버그
@@ -223,10 +225,8 @@ async def fetch_naver_price_history_async(session, ticker, pages=15, page_size=2
             success = True
             for p_idx in range(1, pages + 1):
                  url = f"https://m.stock.naver.com/api/stock/{ticker}/price?pageSize={page_size}&page={p_idx}"
-                 headers = {
-                     "User-Agent": "Mozilla/5.0",
-                     "Referer": f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
-                 }
+                 headers = HEADERS.copy()
+                 headers["Referer"] = f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
                  async with session.get(url, headers=headers, timeout=10) as res:
                      if res.status == 200:
                          data = await res.json()
@@ -257,14 +257,34 @@ async def fetch_naver_price_history_async(session, ticker, pages=15, page_size=2
             
     return []
 
+async def fetch_naver_intraday_async(session, ticker):
+    for attempt in range(3):
+        try:
+            # Correct API for intra-day (1-minute) price points
+            url = f"https://api.stock.naver.com/chart/domestic/item/{ticker}?periodType=day"
+            headers = HEADERS.copy()
+            headers["Referer"] = f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
+            async with session.get(url, headers=headers, timeout=10) as res:
+                if res.status == 200:
+                    data = await res.json()
+                    if isinstance(data, dict):
+                        price_infos = data.get('priceInfos', [])
+                        if price_infos:
+                            return [float(p.get('currentPrice') or p.get('closePrice') or 0) for p in price_infos if p.get('currentPrice') or p.get('closePrice')]
+                    return []
+                elif res.status in [403, 429]:
+                    await asyncio.sleep(1)
+                else: break
+        except Exception:
+            await asyncio.sleep(1)
+    return []
+
 async def fetch_naver_stock_basic_async(session, ticker):
     for attempt in range(3):
         try:
             url = f"https://m.stock.naver.com/api/stock/{ticker}/basic"
-            headers = {
-                "User-Agent": "Mozilla/5.0",
-                "Referer": f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
-            }
+            headers = HEADERS.copy()
+            headers["Referer"] = f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
             async with session.get(url, headers=headers, timeout=10) as res:
                 if res.status == 200:
                     data = await res.json()
@@ -283,10 +303,8 @@ async def fetch_naver_stock_basic_async(session, ticker):
 async def fetch_naver_etf_basic_async(session, ticker):
     for attempt in range(3):
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0",
-                "Referer": f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
-            }
+            headers = HEADERS.copy()
+            headers["Referer"] = f"https://m.stock.naver.com/domestic/stock/{ticker}/total"
             url_etf = f"https://m.stock.naver.com/api/etf/{ticker}/basic"
             
             async with session.get(url_etf, headers=headers, timeout=10) as res:
@@ -319,9 +337,10 @@ async def fetch_naver_etf_basic_async(session, ticker):
                         'returns': return_rates,
                         'sector': sector,
                         'closePrice': _safe_int(_clean_num(res_data.get('closePrice', '0'))),
-                        'change_rate': float(res_data.get('deviationRate', 0) or 0),
-                        'change_val': _safe_int(_clean_num(res_data.get('compareToPreviousClosePrice', '0'))) if res_data.get('compareToPreviousClosePrice') else int(float(res_data.get('decoration', 0) if res_data.get('decoration') else (res_data.get('item', {}).get('decoration') or 0))),
-                        'fluctuationRate': float(res_data.get('fluctuationRate', 0) or 0),
+                        'change_rate': float(res_data.get('fluctuationsRatio', 0) or res_data.get('fluctuationRate', 0) or 0),
+                        'change_val': _safe_int(_clean_num(res_data.get('compareToPreviousClosePrice', '0'))),
+                        'fluctuationRate': float(res_data.get('fluctuationsRatio', 0) or res_data.get('fluctuationRate', 0) or 0),
+                        'deviationRate': float(res_data.get('deviationRate', 0) or 0),
                         'compareToPreviousClosePrice': _safe_int(_clean_num(res_data.get('compareToPreviousClosePrice', '0')))
                     }
                 elif res.status in [403, 429]:
@@ -424,18 +443,20 @@ async def get_dividend_info_async(session, ticker, current_price, manual_data):
     task_fn = fetch_text(url_fn)
     task_naver_basic = fetch_naver_etf_basic_async(session, ticker)
     task_naver_hist = fetch_naver_etf_dividend_history_async(session, ticker)
+    task_naver_intraday = fetch_naver_intraday_async(session, ticker)
     
     # Gather basics
-    results = await asyncio.gather(task_fn, task_naver_basic, task_naver_hist)
+    results = await asyncio.gather(task_fn, task_naver_basic, task_naver_hist, task_naver_intraday)
     
     html_fn = results[0]
-    naver_info = results[1] # {'name':..., 'returns': {'1m':..., '3m':...}, 'sector':...}
+    naver_info = results[1] 
     naver_hist_raw = results[2]
+    intraday_data = results[3]
     
     # Extract Daily Change info
     # Priority: fluctuationRate (%), compareToPreviousClosePrice (Value)
     daily_change_rate = naver_info.get('fluctuationRate', 0.0)
-    if daily_change_rate == 0: daily_change_rate = naver_info.get('change_rate', 0.0) # deviationRate fallback
+    if daily_change_rate == 0: daily_change_rate = naver_info.get('change_rate', 0.0) # Price change rate fallback
     
     daily_change_value = naver_info.get('compareToPreviousClosePrice', 0)
     # Naver Basic often gives positive value for drop, need check sign? 
@@ -460,9 +481,9 @@ async def get_dividend_info_async(session, ticker, current_price, manual_data):
         updated_price = naver_price
 
     price_hist = []
-    if needs_hist:
-        # Fetching history is expensive (pages=15), so we only do it if basics are missing
-        price_hist = await fetch_naver_price_history_async(session, ticker)
+    # Always fetch at least 1 page for sparkline (trend_7d)
+    hist_pages = 15 if needs_hist else 1
+    price_hist = await fetch_naver_price_history_async(session, ticker, pages=hist_pages)
 
     # Calc Returns from History if missing (Fallback for 1M, 3M, 6M, 1Y)
     def calc_hist_return(days_ago):
@@ -606,7 +627,9 @@ async def get_dividend_info_async(session, ticker, current_price, manual_data):
         "dist_history": [{"date": d.strftime("%Y-%m-%d"), "amount": amt} for d, amt in hist],
         "updated_price": updated_price,
         "daily_change_rate": round(float(daily_change_rate), 2),
-        "daily_change_value": int(daily_change_value)
+        "daily_change_value": int(daily_change_value),
+        "price_hist": price_hist,
+        "intraday_data": intraday_data # 1-day trend
     }
 
 def get_income_yield_annual(div_info: dict) -> float:
@@ -791,6 +814,8 @@ async def process_single_ticker(session, ticker, master_df, manual_data):
                 "total_cagr_3y": _round2(total_cagr_3y),
                 "total_cagr_5y": _round2(total_cagr_5y),
 
+                "trend_1d": div.get("intraday_data", []),
+
                 "last_updated": datetime.now().strftime("%Y-%m-%d"),
             }
         }
@@ -954,27 +979,22 @@ async def fetch_basic_info_only(session, ticker):
     Fetch only price and change data.
     """
     try:
+        # Launch intraday fetch early
+        intraday_task = asyncio.create_task(fetch_naver_intraday_async(session, ticker))
+
         # Try ETF Basic first
         etf_data = await fetch_naver_etf_basic_async(session, ticker)
         if etf_data.get('closePrice') and etf_data['closePrice'] > 0:
+            trend_data = await intraday_task
+            etf_data['trend_1d'] = trend_data
             return ticker, etf_data
 
         # Fallback to Stock Basic
         stock_data = await fetch_naver_stock_basic_async(session, ticker)
         if stock_data:
-             # Standardize format
-             # stock basic keys: closePrice (str), compareToPreviousClosePrice (str), fluctuationsRatio (str)
              p = _safe_int(_clean_num(stock_data.get('closePrice', '0')))
-             
-             # Fluctuation
              rate = float(stock_data.get('fluctuationsRatio', 0) or 0)
-             
              val = _safe_int(_clean_num(stock_data.get('compareToPreviousClosePrice', '0') or '0'))
-             
-             # Determine sign
-             # 2: Rise, 4: Fall? 5: Fall?
-             # Easy way: compareToPreviousClosePrice is usually absolute.
-             # If compareToPreviousPrice.name == 'FALLING' or 'SHOCK', negate value/rate.
              
              status_name = stock_data.get('compareToPreviousPrice', {}).get('name', '')
              if status_name in ['FALLING', 'SHOCK', 'LOWER_LIMIT']:
@@ -984,12 +1004,17 @@ async def fetch_basic_info_only(session, ticker):
                  val = abs(val)
                  rate = abs(rate)
              
+             trend_data = await intraday_task
              return ticker, {
                  'closePrice': p,
                  'change_rate': rate,
                  'change_val': val,
-                 'name': stock_data.get('stockName', ticker)
+                 'name': stock_data.get('stockName', ticker),
+                 'trend_1d': trend_data
              }
+        
+        # Ensure intraday task is completed even if basics fail
+        await intraday_task
     except:
         pass
     return ticker, None

@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 
 APP_NAME = "KR ETF Dividend Insight"
-VERSION = "1.0.4"
+VERSION = "1.1.2"
 AUTHOR = "SHIN YONG HUI"
 
 # Ensure root directory is in sys.path to find 'services'
@@ -713,6 +713,9 @@ def trigger_price_refresh():
                 universe[t]['daily_change_value'] = info['change_val']
                 # universe[t]['name'] = info['name'] # Optional
                 
+                if info.get('trend_1d'):
+                    universe[t]['trend_1d'] = info['trend_1d']
+
                 universe[t]['last_updated'] = datetime.now().strftime("%Y-%m-%d")
                 updates_count += 1
         

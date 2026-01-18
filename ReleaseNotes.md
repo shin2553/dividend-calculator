@@ -1,5 +1,17 @@
 # Release Notes
 
+## v1.1.2 (2026-01-18) - Data Integrity & Detail View Polish
+- **Systemic Bug Fix: Price Change Data Mapping**: 
+    - 상장지수펀드(ETF)의 '괴리율'을 가격 변동률로 오인하여 표시하던 시스템 결합 오류를 수정했습니다.
+    - 이제 전일 대비 실제 등락률을 정확하게 수집하여 주가 변동 정보와 색상을 표시합니다.
+- **New Feature: Detail View Sparkline**:
+    - 종목 상세 화면에 **실시간 주가 추세(Sparkline)**를 추가했습니다.
+    - 주가 잉크 및 변동률 바로 옆에서 오늘의 흐름을 직관적으로 확인할 수 있습니다.
+- **UI Typography Refinement**:
+    - 종목 리스트와 상세 화면의 **가독성 최적화**를 위해 폰트 사이즈를 미세 조정(최대 3px 축소)했습니다.
+    - 변동률 기호(▲/▼)와 숫자의 수평 정렬을 맞추어 디자인의 균형을 개선했습니다.
+- **Visual Consistency**: 주가 하락 시 스파크라인과 변동률 텍스트가 명확하게 파란색으로 표시되도록 일관성을 강화했습니다.
+
 ## v1.1.1 (2026-01-18) - Minor Update: Layout & Detail View Optimization
 - **UI Improvement: Dynamic Panel Ratios**: 창 분할 비율을 사용성 중심으로 최적화했습니다.
     - **2프레임 모드 (종목명/포트폴리오)**: **1:1** 비중으로 자동 설정.

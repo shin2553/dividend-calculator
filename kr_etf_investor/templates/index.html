@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KR ETF Dividend Insight v1.1.1</title>
+    <title>KR ETF Dividend Insight v1.1.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -164,7 +164,7 @@
         <div class="flex items-center">
             <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">KR
                 ETF Dividend Insight</h1>
-            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.1</span>
+            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.2</span>
             <div class="tooltip-container">
                 <button onclick="openAbout()" class="ml-2 p-1 text-gray-400 hover:text-blue-400 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -527,7 +527,7 @@
         </div>
     </div>
 
-    <div id="modal-manage" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
+    <div id="modal-manage" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[5000]">
         <div class="bg-[#1a1a1a] border border-gray-700 rounded-lg w-[380px] p-4 text-gray-200">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
                 <h3 class="font-bold text-sm">Portfolio Management</h3>
@@ -580,7 +580,7 @@
     </div>
 
     <!-- UPDATE RESULT MODAL -->
-    <div id="modal-update-result" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
+    <div id="modal-update-result" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[5000]">
         <div class="bg-[#1a1a1a] border border-gray-700 rounded-lg w-[400px] p-6 text-gray-200 shadow-2xl">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
                 <h3 class="font-bold text-lg text-white">업데이트 완료</h3>
@@ -619,7 +619,7 @@
 
     <!-- CALENDAR MODAL -->
     <div id="modal-calendar"
-        class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        class="hidden fixed inset-0 bg-black/80 z-[5000] flex items-center justify-center backdrop-blur-sm">
         <div
             class="bg-[#111] border border-gray-800 w-[800px] h-[500px] rounded-lg shadow-2xl flex flex-col overflow-hidden">
             <div class="flex justify-between items-center px-4 py-3 border-b border-gray-800 bg-[#1a1a1a]">
@@ -641,7 +641,7 @@
 
     <!-- ANALYSIS MODAL -->
     <div id="modal-analysis"
-        class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        class="hidden fixed inset-0 bg-black/80 z-[5000] flex items-center justify-center backdrop-blur-sm">
         <div
             class="bg-[#111] border border-gray-800 w-[600px] h-[500px] rounded-lg shadow-2xl flex flex-col overflow-hidden">
             <div class="flex justify-between items-center px-4 py-3 border-b border-gray-800 bg-[#1a1a1a]">
@@ -663,7 +663,7 @@
 
     <!-- ABOUT MODAL -->
     <div id="modal-about"
-        class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center backdrop-blur-md">
+        class="hidden fixed inset-0 bg-black/90 z-[5000] flex items-center justify-center backdrop-blur-md">
         <div
             class="bg-[#111] border border-gray-800 w-[450px] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform transition-all scale-100 p-8 text-center ring-1 ring-white/10">
             <div class="mb-6 flex justify-center">
@@ -674,7 +674,7 @@
             </div>
 
             <h2 class="text-3xl font-black text-white mb-2 tracking-tight">KR ETF Dividend Insight</h2>
-            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.1 (Stable)</p>
+            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.2 (Stable)</p>
 
             <div class="space-y-4 text-base text-gray-400 mb-8 px-4">
                 <div class="flex justify-between border-b border-gray-800 pb-3">
@@ -740,7 +740,7 @@
     <!-- SCRIPT -->
     <!-- SIMULATOR MODAL -->
     <div id="modal-simulator"
-        class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        class="hidden fixed inset-0 bg-black/80 z-[5000] flex items-center justify-center backdrop-blur-sm">
         <div
             class="bg-[#111] border border-gray-800 w-[95%] h-[90%] rounded-lg shadow-2xl flex flex-col overflow-hidden">
             <!-- Header -->
@@ -792,6 +792,15 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">절세 계좌 종류</label>
+                                <select id="sim-account-type" onchange="onTaxAccountChange(this.value)"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-[11px] focus:border-green-500 focus:outline-none">
+                                    <option value="general">일반 계좌</option>
+                                    <option value="isa">ISA 계좌</option>
+                                    <option value="pension">연금저축/IRP</option>
+                                </select>
+                            </div>
                             <div>
                                 <label class="block text-[10px] text-gray-500 mb-1">세율 (%)</label>
                                 <input type="number" id="sim-tax" value="15.4" step="0.1"
@@ -1184,6 +1193,11 @@
                         if (wasRunning) {
                             if (status.summary) {
                                 showUpdateResult(status.summary);
+                                // Auto-refresh UI after full update
+                                await loadUniverse();
+                                renderUniverse();
+                                renderPortfolio();
+                                renderKPI();
                             } else if (status.message && status.message.startsWith('Error')) {
                                 alert('업데이트 실패: ' + status.message);
                             }
@@ -1493,7 +1507,7 @@
             if (pricePast === 0 || pricePast === undefined) {
                 return `<span class="text-gray-600">-</span>`;
             }
-            return `<span class="font-bold ${getColorClass(val)}">${val.toFixed(1)}%</span>`;
+            return `<span class="font-bold text-[11.5px] ${getColorClass(val)}">${val.toFixed(1)}%</span>`;
         }
 
         function renderReturnDetail(val, pricePast) {
@@ -1621,10 +1635,10 @@
                         div.innerHTML = `
                             <!-- Name & Ticker -->
                             <div class="col-span-4">
-                                <div class="font-bold text-base text-gray-200 whitespace-normal break-all leading-snug group-hover:text-blue-400 transition">
+                                <div class="font-bold text-[14px] text-gray-200 whitespace-normal break-all leading-snug group-hover:text-blue-400 transition">
                                     ${d.name}
-                                    ${isInCurrent ? '<span class="pf-badge ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-normal">보유중</span>' : ''}
-                                    ${isInOther ? '<span class="pf-badge ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-normal border border-gray-700">타 계좌 보유</span>' : ''}
+                                    ${isInCurrent ? '<span class="pf-badge ml-2 text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-normal">보유중</span>' : ''}
+                                    ${isInOther ? '<span class="pf-badge ml-2 text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-normal border border-gray-700">타 계좌 보유</span>' : ''}
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
                                     <span class="text-xs text-gray-500">${item.symbol}</span>
@@ -1632,27 +1646,29 @@
                                 </div>
                             </div>
 
-                            <!-- Price -->
-                            <div class="col-span-2 text-right pr-6">
-                                 <div class="text-sm font-bold text-white">${d.price.toLocaleString()}</div>
-                                 <div class="mt-0.5 leading-none">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
-                            </div>
+                             <div class="col-span-2 flex items-center justify-end gap-2 pr-3 border-r border-white/5">
+                                  <div class="text-right">
+                                      <div class="text-[10.5px] font-bold text-white">${d.price.toLocaleString()}</div>
+                                      <div class="mt-0.5 leading-none">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
+                                  </div>
+                                  <canvas id="sparkline-${item.symbol}" width="46" height="20" class="opacity-90"></canvas>
+                             </div>
 
-                            <div class="col-span-4 grid grid-cols-4 gap-2 text-center items-center">
+                            <div class="col-span-4 grid grid-cols-4 gap-1 text-center items-center">
                                 <div class="flex flex-col">
-                                    <span class="text-[10px] text-gray-600">1M</span>
+                                    <span class="text-[9.5px] text-gray-600">1M</span>
                                     ${renderReturn(d.return_1m, d.price_1m)}
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="text-[10px] text-gray-600">3M</span>
+                                    <span class="text-[9.5px] text-gray-600">3M</span>
                                     ${renderReturn(d.return_3m, d.price_3m)}
                                 </div>
                                  <div class="flex flex-col">
-                                    <span class="text-[10px] text-gray-600">6M</span>
+                                    <span class="text-[9.5px] text-gray-600">6M</span>
                                     ${renderReturn(d.return_6m, d.price_6m)}
                                 </div>
                                  <div class="flex flex-col">
-                                    <span class="text-[10px] text-gray-600">1Y</span>
+                                    <span class="text-[9.5px] text-gray-600">1Y</span>
                                     ${renderReturn(d.return_1y, d.price_1y)}
                                 </div>
                             </div>
@@ -1671,6 +1687,25 @@
                         `;
                     }
                     elUniverseList.appendChild(div);
+                });
+
+                // Sparkline Drawing (Async)
+                requestAnimationFrame(() => {
+                    filtered.forEach(item => {
+                        const canvas = document.getElementById(`sparkline-${item.symbol}`);
+                        if (canvas && item.data.trend_1d && item.data.trend_1d.length > 1) {
+                            // RED for UP, BLUE for DOWN
+                            const color = (item.data.daily_change_rate > 0) ? '#ef4444' : (item.data.daily_change_rate < 0 ? '#3b82f6' : '#9ca3af');
+
+                            const baseline = (item.data.price || 0) - (item.data.daily_change_value || 0);
+
+                            // Append current price to trend points for more accurate end point
+                            const trend = [...item.data.trend_1d];
+                            if (item.data.price) trend.push(item.data.price);
+
+                            drawSparkline(canvas, trend, color, baseline);
+                        }
+                    });
                 });
             } catch (error) {
                 console.error("renderUniverse error:", error);
@@ -1705,21 +1740,77 @@
         function renderYieldRight(d) {
             if (d.dist_ttm_yield > 0) {
                 return `
-                    <div class="text-sm font-bold text-white">연 ${d.dist_ttm_yield.toFixed(2)}%</div>
+                    <div class="text-[13.5px] font-bold text-white">연 ${d.dist_ttm_yield.toFixed(2)}%</div>
                     <div class="flex items-center justify-end gap-1">
-                        <span class="text-[9px] px-1 py-0.5 rounded bg-green-900 text-green-300 font-bold">TTM</span>
+                        <span class="text-[9.5px] px-1 py-0.5 rounded bg-green-900 text-green-300 font-bold">TTM</span>
                     </div>
                 `;
             } else if (d.est_annual_yield > 0) {
                 return `
-                    <div class="text-sm font-bold text-white">연 ${d.est_annual_yield.toFixed(2)}%</div>
+                    <div class="text-[13.5px] font-bold text-white">연 ${d.est_annual_yield.toFixed(2)}%</div>
                      <div class="flex items-center justify-end gap-1">
-                        <span class="text-[9px] px-1 py-0.5 rounded bg-gray-700 text-gray-300 font-bold">추정</span>
+                        <span class="text-[9.5px] px-1 py-0.5 rounded bg-gray-700 text-gray-300 font-bold">추정</span>
                     </div>
                 `;
             } else {
-                return `<div class="text-sm text-gray-600">-</div>`;
+                return `<div class="text-[13.5px] text-gray-600">-</div>`;
             }
+        }
+
+        function drawSparkline(canvas, data, color, baseline = null) {
+            try {
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                ctx.clearRect(0, 0, w, h);
+
+                // Include baseline in min/max to ensure it's visible relative to trend
+                let allVals = [...data];
+                if (baseline !== null) allVals.push(baseline);
+
+                const min = Math.min(...allVals);
+                const max = Math.max(...allVals);
+                const range = (max - min) || 1;
+
+                const getY = (val) => h - ((val - min) / range) * (h - 4) - 2;
+
+                // Draw Baseline (Dashed)
+                if (baseline !== null) {
+                    const baselineY = getY(baseline);
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 2]);
+                    ctx.moveTo(0, baselineY);
+                    ctx.lineTo(w, baselineY);
+                    ctx.stroke();
+                    ctx.setLineDash([]); // Reset dash
+                }
+
+                const points = data.map((val, i) => ({
+                    x: (i / (data.length - 1)) * w,
+                    y: getY(val)
+                }));
+
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.stroke();
+
+                // Gradient Fill
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                const grad = ctx.createLinearGradient(0, 0, 0, h);
+                grad.addColorStop(0, color + '33');
+                grad.addColorStop(1, color + '00');
+                ctx.fillStyle = grad;
+                ctx.fill();
+            } catch (e) { }
         }
 
         function renderDetail(symbol) {
@@ -1734,10 +1825,11 @@
                     <div class="flex items-center gap-2 mb-1">
                          <span class="text-gray-500 text-sm font-mono">${symbol}</span>
                     </div>
-                    <h2 class="text-3xl font-bold text-white leading-tight mb-2">${d.name}</h2>
-                    <div class="text-4xl font-bold flex items-end gap-2">
-                        ${d.price.toLocaleString()} <span class="text-lg text-gray-500 font-normal mb-1">KRW</span>
-                        <div class="mb-1 ml-2">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0).replace('text-[10px]', 'text-2xl')}</div>
+                    <h2 class="text-[26px] font-bold text-white leading-tight mb-2">${d.name}</h2>
+                    <div class="text-[28px] font-bold flex items-center gap-2">
+                        ${d.price.toLocaleString()} <span class="text-base text-gray-500 font-normal mt-1">KRW</span>
+                        <div class="ml-2">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0).replace('text-[7px]', 'text-[16px]')}</div>
+                        <canvas id="detail-sparkline" width="60" height="26" class="ml-2 opacity-90"></canvas>
                     </div>
                 </div>
 
@@ -1864,6 +1956,16 @@
 
             updateChart(d);
             fetchAndRenderPriceChart(symbol);
+
+            // Detail Sparkline
+            const detailCanvas = document.getElementById('detail-sparkline');
+            if (detailCanvas && d.trend_1d && d.trend_1d.length > 1) {
+                const color = (d.daily_change_rate > 0) ? '#ef4444' : (d.daily_change_rate < 0 ? '#3b82f6' : '#9ca3af');
+                const baseline = (d.price || 0) - (d.daily_change_value || 0);
+                const trend = [...d.trend_1d];
+                if (d.price) trend.push(d.price);
+                drawSparkline(detailCanvas, trend, color, baseline);
+            }
         }
 
         function saveDetailQty(symbol) {
@@ -2600,10 +2702,11 @@
             if (isNaN(r)) return '';
 
             const colorClass = r > 0 ? 'text-up' : (r < 0 ? 'text-down' : 'text-gray-500');
-            const sign = r > 0 ? '▲' : (r < 0 ? '▼' : '-');
+            const sign = r > 0 ? '▲' : (r < 0 ? '▼' : '');
+            const rateStr = Math.abs(r).toFixed(2);
 
             // Format: ▲ 3.47%
-            return `<span class="${colorClass} font-bold text-[10px]">${sign} ${Math.abs(r).toFixed(2)}%</span>`;
+            return `<span class="${colorClass} font-bold text-[7px] line-height-none">${sign} ${rateStr}%</span>`;
         }
 
         // -----------------------
@@ -3075,6 +3178,15 @@
             document.getElementById('modal-simulator').classList.add('hidden');
         }
 
+        function onTaxAccountChange(type) {
+            const taxInput = document.getElementById('sim-tax');
+            if (type === 'general') {
+                taxInput.value = "15.4";
+            } else {
+                taxInput.value = "0";
+            }
+        }
+
         async function runSimulation() {
             const params = {
                 initial_principal: parseFloat(document.getElementById('sim-principal').value) || 0,
@@ -3084,6 +3196,7 @@
                 annual_div_growth: (parseFloat(document.getElementById('sim-div-growth').value) || 0) / 100,
                 inflation_rate: (parseFloat(document.getElementById('sim-inflation').value) || 0) / 100,
                 tax_rate: (parseFloat(document.getElementById('sim-tax').value) || 0) / 100,
+                account_type: document.getElementById('sim-account-type').value,
                 reinvest_ratio: (() => {
                     const val = document.getElementById('sim-reinvest-ratio').value;
                     return (val === '' ? 100 : parseFloat(val)) / 100;
@@ -3126,8 +3239,13 @@
                 let statusHtml = `<span class="text-green-400">최종 자산: ${formatVal(final.asset_post)}원</span> | ` +
                     `<span class="text-orange-400">최종 월배당: ${formatVal(final.monthly_div_post)}원</span>`;
 
+                if (params.account_type !== 'general') {
+                    statusHtml += ` | <span class="text-blue-400 font-bold">절세 혜택: +${formatVal(final.advantage)}원</span>`;
+                    statusHtml += ` <span class="text-[10px] text-blue-500">(누적 절세액: ${formatVal(final.tax_saved_total)}원)</span>`;
+                }
+
                 if (params.inflation_rate > 0) {
-                    statusHtml += `<span class="text-gray-500 text-[10px] ml-2">(실질가치: ${formatVal(final.asset_post_real)}원 / 월 ${formatVal(final.monthly_div_post_real)}원)</span>`;
+                    statusHtml += `<div class="mt-1 text-gray-500 text-[10px]">(물가상승 실질가치: 최종자산 ${formatVal(final.asset_post_real)}원 / 월배당 ${formatVal(final.monthly_div_post_real)}원)</div>`;
                 }
                 document.getElementById('sim-status').innerHTML = statusHtml;
             }
@@ -3197,7 +3315,7 @@
                 },
                 {
                     label: '주가 수익',
-                    data: dataGrowthCum.map((v, i) => v + dataDivCum[i] + dataPrincipal[i]), // Stacked Manually for Fill?
+                    data: dataGrowthCum.map((v, i) => v + dataDivCum[i] + dataPrincipal[i]),
                     // Chart.js stacked area works better with raw values if stacked: true
                     // But here we want areas. Let's use 'fill: "-1"' approach or strict stacking.
                     // Stacking Setup: Principal (Bottom) -> Div (Middle) -> Growth (Top)

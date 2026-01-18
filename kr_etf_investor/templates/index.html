@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KR ETF Dividend Insight v1.1.0</title>
+    <title>KR ETF Dividend Insight v1.1.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -164,7 +164,7 @@
         <div class="flex items-center">
             <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">KR
                 ETF Dividend Insight</h1>
-            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.0</span>
+            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.1</span>
             <div class="tooltip-container">
                 <button onclick="openAbout()" class="ml-2 p-1 text-gray-400 hover:text-blue-400 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -470,32 +470,38 @@
             <!-- LIST VIEW (Always flex-1, takes remaining space) -->
             <div id="view-portfolio-list" class="flex-1 flex flex-col overflow-hidden min-h-0">
                 <div
-                    class="grid grid-cols-12 px-3 py-2 bg-[#151515] text-[11px] text-gray-300 font-bold border-b border-gray-800 shrink-0 text-center items-center">
-                    <div class="col-span-3 text-left pl-2 cursor-pointer hover:text-white select-none group"
+                    class="grid grid-cols-[4fr_4fr_1.2fr_1fr_1.8fr] gap-x-2 px-3 py-2 bg-[#151515] text-[12px] text-gray-100 font-bold border-b border-gray-800 shrink-0 text-center items-center">
+                    <div class="text-left pl-2 cursor-pointer hover:text-white select-none group"
                         onclick="setPortfolioSort('name')">
                         종목명 <span id="pf-sort-icon-name" class="text-[9px] text-blue-400"></span>
                     </div>
-                    <div class="col-span-2 text-right pr-4 cursor-pointer hover:text-white select-none group"
-                        onclick="setPortfolioSort('price')">
-                        현재가 <span id="pf-sort-icon-price" class="text-[9px] text-blue-400"></span>
+                    <!-- Equalized Middle Group (4 spans logic) -->
+                    <div class="grid grid-cols-3 gap-x-2">
+                        <div class="text-right pr-2 cursor-pointer hover:text-white select-none group"
+                            onclick="setPortfolioSort('price')">
+                            현재가 <span id="pf-sort-icon-price" class="text-[9px] text-blue-400"></span>
+                        </div>
+                        <div class="text-center cursor-pointer hover:text-white select-none group"
+                            onclick="setPortfolioSort('qty')">
+                            수량 <span id="pf-sort-icon-qty" class="text-[9px] text-blue-400"></span>
+                        </div>
+                        <div class="text-center cursor-pointer hover:text-white select-none group"
+                            onclick="setPortfolioSort('avg_price')">
+                            평단가 <span id="pf-sort-icon-avg_price" class="text-[9px] text-blue-400"></span>
+                        </div>
                     </div>
-                    <div class="col-span-2 text-center cursor-pointer hover:text-white select-none group"
-                        onclick="setPortfolioSort('qty')">
-                        수량 <span id="pf-sort-icon-qty" class="text-[9px] text-blue-400"></span>
+                    <div class="text-right pr-1 cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('cost')">
+                        원금합계 <span id="pf-sort-icon-cost" class="text-[9px] text-blue-400"></span>
                     </div>
-                    <div class="col-span-2 text-center cursor-pointer hover:text-white select-none group"
-                        onclick="setPortfolioSort('avg_price')">
-                        평단 <span id="pf-sort-icon-avg_price" class="text-[9px] text-blue-400"></span>
-                    </div>
-                    <div class="col-span-1 text-center cursor-pointer hover:text-white select-none group"
+                    <div class="text-center cursor-pointer hover:text-white select-none group"
                         onclick="setPortfolioSort('return')">
-                        수익 <span id="pf-sort-icon-return" class="text-[9px] text-blue-400"></span>
+                        수익률 <span id="pf-sort-icon-return" class="text-[9px] text-blue-400"></span>
                     </div>
-                    <div class="col-span-1 text-right cursor-pointer hover:text-white select-none group"
+                    <div class="text-right pr-0 cursor-pointer hover:text-white select-none group"
                         onclick="setPortfolioSort('value')">
                         평가금액 <span id="pf-sort-icon-value" class="text-[9px] text-blue-400"></span>
                     </div>
-                    <div class="col-span-1"></div>
                 </div>
                 <div id="portfolio-list" class="flex-1 overflow-y-auto p-1 space-y-1">
                     <!-- Holdings injected here -->
@@ -668,7 +674,7 @@
             </div>
 
             <h2 class="text-3xl font-black text-white mb-2 tracking-tight">KR ETF Dividend Insight</h2>
-            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.0 (Stable)</p>
+            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.1 (Stable)</p>
 
             <div class="space-y-4 text-base text-gray-400 mb-8 px-4">
                 <div class="flex justify-between border-b border-gray-800 pb-3">
@@ -878,8 +884,8 @@
         let pfSort = { key: 'added_at', order: 'desc' }; // Default sort: Recents first
 
         // Layout State
-        let wLeft = 33.33;
-        let wCenter = 33.33;
+        let wLeft = 25;
+        let wCenter = 25;
         let wLeft2 = 50; // Default 2-column width for Left Panel
 
         // Optimization: Debounce storage
@@ -1020,20 +1026,21 @@
 
             if (currentSplitter.id === 'splitter-1') {
                 if (isDetailOpen) {
-                    if (xPct < 15 || xPct > 45) return;
+                    // Redistribute space between Name and Detail without affecting Portfolio
+                    const totalShared = wLeft + wCenter;
+                    if (xPct < 10 || xPct > (totalShared - 10)) return;
                     wLeft = xPct;
-                    // Center width remains constant? Or we push center?
-                    // Better UX: resize Left, Center shifts.
+                    wCenter = totalShared - wLeft;
                 } else {
                     if (xPct < 20 || xPct > 80) return;
                     wLeft2 = xPct;
                 }
             } else if (currentSplitter.id === 'splitter-2') {
                 if (!isDetailOpen) return;
-                // Center Width = xPct - wLeft
-                let newCenter = xPct - wLeft;
-                if (newCenter < 20 || (wLeft + newCenter) > 85) return;
-                wCenter = newCenter;
+                // Boundary between Detail and Portfolio
+                let newTotal = xPct;
+                if (newTotal < (wLeft + 10) || newTotal > 90) return;
+                wCenter = newTotal - wLeft;
             }
             updateLayout();
         });
@@ -1049,6 +1056,9 @@
         function openDetail(symbol) {
             currentTicker = symbol;
             isDetailOpen = true;
+            // Force 1:1:2 ratio (25%, 25%, 50%)
+            wLeft = 25;
+            wCenter = 25;
             updateLayout();
             renderDetail(symbol);
         }
@@ -1056,6 +1066,8 @@
         function closeDetail() {
             isDetailOpen = false;
             currentTicker = null;
+            // Force 1:1 ratio (50%, 50%)
+            wLeft2 = 50;
             updateLayout();
         }
 
@@ -1729,6 +1741,24 @@
                     </div>
                 </div>
 
+                <!-- Portfolio Input -->
+                <div class="mb-6 pb-6 border-b border-gray-800">
+                    <label class="block text-sm text-gray-400 mb-3 font-bold">내 보유수량 및 평단가 수정 (${currentAccountName})</label>
+                    <div class="flex gap-3 items-end">
+                        <div class="flex-1">
+                            <label class="block text-[10px] text-gray-500 mb-1">수량 (Qty)</label>
+                            <input type="number" id="d-input-qty" value="${(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]) ? portfolioData.accounts[currentAccountName].positions[symbol].qty : 0}"
+                                class="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500" placeholder="수량">
+                        </div>
+                        <div class="flex-1">
+                             <label class="block text-[10px] text-gray-500 mb-1">평단가 (Avg Price)</label>
+                             <input type="number" id="d-input-avg-price" value="${(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]) ? (portfolioData.accounts[currentAccountName].positions[symbol].avg_price || 0) : 0}"
+                                class="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500" placeholder="평단가">
+                        </div>
+                        <button onclick="saveDetailQty('${symbol}')" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-lg font-bold transition py-3 text-lg border border-transparent">저장</button>
+                    </div>
+                </div>
+
                 <!-- Main Yield Card -->
                 <div class="glass p-6 rounded-2xl text-center mb-6">
                     <p class="text-gray-400 text-sm uppercase mb-2 font-medium">연 분배율 (Annual Yield)</p>
@@ -1829,26 +1859,6 @@
                             ${renderReturnDetail(d.total_cagr_5y, d.price_5y)}
                         </div>
                      </div>
-                </div>
-
-
-
-                <!-- Portfolio Input -->
-                <div class="pt-6 border-t border-gray-800">
-                    <label class="block text-sm text-gray-400 mb-3">내 보유수량 및 평단가 수정 (${currentAccountName})</label>
-                    <div class="flex gap-3 items-end">
-                        <div class="flex-1">
-                            <label class="block text-[10px] text-gray-500 mb-1">수량 (Qty)</label>
-                            <input type="number" id="d-input-qty" value="${(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]) ? portfolioData.accounts[currentAccountName].positions[symbol].qty : 0}"
-                                class="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500" placeholder="수량">
-                        </div>
-                        <div class="flex-1">
-                             <label class="block text-[10px] text-gray-500 mb-1">평단가 (Avg Price)</label>
-                             <input type="number" id="d-input-avg-price" value="${(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]) ? (portfolioData.accounts[currentAccountName].positions[symbol].avg_price || 0) : 0}"
-                                class="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500" placeholder="평단가">
-                        </div>
-                        <button onclick="saveDetailQty('${symbol}')" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-lg font-bold transition py-3 text-lg border border-transparent">저장</button>
-                    </div>
                 </div>
             `;
 
@@ -2008,7 +2018,7 @@
 
         function updatePfSortIcons() {
             // Reset all icons
-            ['name', 'price', 'qty', 'avg_price', 'return', 'value'].forEach(k => {
+            ['name', 'price', 'qty', 'avg_price', 'cost', 'return', 'value'].forEach(k => {
                 const el = document.getElementById(`pf-sort-icon-${k}`);
                 if (el) el.innerText = '';
             });
@@ -2078,33 +2088,37 @@
                 const accRetSign = accReturn >= 0 ? "+" : "";
 
                 htmlStr += `
-                    <div class="grid grid-cols-12 px-3 py-3 text-[11px] font-bold items-center mt-2 first:mt-0 sticky top-0 z-10 transition-all ${bgClass}" ${onClick} ${title}>
-                        <div class="col-span-3 flex items-center gap-2 overflow-hidden pl-2">
-                             <span class="${textClass} text-base tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">${accName}</span>
+                    <div class="grid grid-cols-[4fr_4fr_1.2fr_1fr_1.8fr] gap-x-2 px-3 py-3 text-[11px] font-bold items-center mt-2 first:mt-0 sticky top-0 z-10 transition-all ${bgClass}" ${onClick} ${title}>
+                        <div class="flex items-center gap-2 overflow-hidden pl-2">
+                             <span class="${textClass} text-sm tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">${accName}</span>
                              ${isActive ? '<span class="px-1.5 py-0.5 rounded bg-blue-600 text-[8px] text-white font-black uppercase tracking-wider shadow-lg shrink-0">ACTIVE</span>' : ''}
                         </div>
-                        <div class="col-span-2 text-right pr-4">
-                            <!-- Helper / Empty alignment for Current Price column -->
-                        </div>
-                        <div class="col-span-2 text-center">
-                            <div class="inline-flex items-center justify-center gap-1 bg-black/40 px-2.5 py-1 rounded-full border border-white/5">
-                                <span class="text-white font-black text-sm">${symbols.length}</span>
-                                <span class="text-[8px] font-bold text-gray-500 uppercase">items</span>
+                        <div class="grid grid-cols-3 gap-x-2">
+                            <div class="text-right pr-4">
+                                <!-- Price placeholder -->
+                            </div>
+                            <div class="text-center">
+                                <div class="inline-flex items-center justify-center gap-1 bg-black/40 px-2 py-1 rounded-full border border-white/5">
+                                    <span class="text-white font-black text-[13px]">${symbols.length}</span>
+                                    <span class="text-[8px] font-bold text-gray-500 uppercase">items</span>
+                                </div>
+                            </div>
+                            <div class="text-right pr-4">
+                                <!-- Avg Price placeholder -->
                             </div>
                         </div>
-                        <div class="col-span-2 text-right pr-2">
+                        <div class="text-right pr-1">
                              <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Total Cost</div>
                              <div class="text-gray-300 font-black text-[11px] leading-none">₩${accTotalCost.toLocaleString()}</div>
                         </div>
-                        <div class="col-span-1 text-center">
+                        <div class="text-center">
                              <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Ret.</div>
                              <span class="${accRetClass} font-black text-[11px] leading-none">${accRetSign}${accReturn.toFixed(1)}%</span>
                         </div>
-                        <div class="col-span-1 text-right">
+                        <div class="text-right pr-0 flex flex-col items-end">
                              <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Market Value</div>
-                             <div class="text-white font-black text-sm leading-none">₩${accTotalVal.toLocaleString()}</div>
+                             <div class="text-white font-black text-[13px] leading-none">₩${accTotalVal.toLocaleString()}</div>
                         </div>
-                        <div class="col-span-1"></div>
                     </div>
                 `;
 
@@ -2151,6 +2165,8 @@
                                 valA = qtyA; valB = qtyB; break;
                             case 'avg_price':
                                 valA = avgA; valB = avgB; break;
+                            case 'cost':
+                                valA = avgA * qtyA; valB = avgB * qtyB; break;
                             case 'return':
                                 valA = retA; valB = retB; break;
                             case 'value':
@@ -2181,7 +2197,7 @@
                         if (avgPrice > 0) {
                             const gl = (d.price - avgPrice) / avgPrice * 100;
                             const glClass = gl >= 0 ? 'text-red-400' : 'text-blue-400';
-                            gainLossHtml = `<span class="text-[9px] ${glClass} font-bold">${gl >= 0 ? '+' : ''}${gl.toFixed(1)}%</span>`;
+                            gainLossHtml = `<span class="text-[10px] ${glClass} font-bold">${gl >= 0 ? '+' : ''}${gl.toFixed(1)}%</span>`;
                         }
 
                         // Check for recent addition (within 3 seconds)
@@ -2189,44 +2205,48 @@
                         const now = new Date().getTime();
                         const isNew = (now - addedTime) < 3000;
                         const rowClass = isNew ? "animate-flash" : "";
+                        const stockCost = avgPrice * pos.qty;
 
                         htmlStr += `
-                        <div class="grid grid-cols-12 px-3 py-2 text-xs border-b border-[#222] items-center hover:bg-[#1a1a1a] ${rowClass}" id="portfolio-item-${accName}-${symbol}">
-                             <div class="col-span-3 pl-2">
-                                <div class="text-gray-300 font-medium text-[11px] whitespace-normal break-words leading-tight" title="${d.name}">${d.name}</div>
-                                <div class="text-[9px] text-gray-500">${symbol}</div>
+                        <div class="grid grid-cols-[4fr_4fr_1.2fr_1fr_1.8fr] gap-x-2 px-3 py-3 text-xs border-b border-[#222] items-center hover:bg-[#1a1a1a] ${rowClass}" id="portfolio-item-${accName}-${symbol}">
+                             <div class="pl-2">
+                                <div class="text-gray-300 font-medium text-[14px] whitespace-normal break-words leading-tight" title="${d.name}">${d.name}</div>
+                                <div class="text-[12px] text-gray-500">${symbol}</div>
                             </div>
-                            <div class="col-span-2 text-right pr-4 text-gray-400 font-medium text-[11px] flex flex-col justify-center h-full">
-                                <div>₩${d.price.toLocaleString()}</div>
-                                <div class="leading-none mt-0.5">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
+                            <div class="grid grid-cols-3 gap-x-2">
+                                <div class="text-right pr-2 text-gray-400 font-medium text-[12px] flex flex-col justify-center h-full">
+                                    <div>₩${d.price.toLocaleString()}</div>
+                                    <div class="leading-none mt-0.5">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
+                                </div>
+                                <div class="text-center px-1">
+                                    <input type="text"
+                                        class="w-full bg-[#111] text-center text-gray-300 border border-gray-700 rounded text-[11px] focus:outline-none focus:border-blue-500 py-1.5"
+                                        value="${pos.qty.toLocaleString()}"
+                                        onfocus="this.value = this.value.replace(/,/g, '')"
+                                        onblur="if(this.value.trim() === '') return; saveToServer('${symbol}', parseInt(this.value.replace(/,/g,'')) || 0, '${accName}')"
+                                        onkeydown="if(event.key === 'Enter') this.blur()"
+                                        onclick="event.stopPropagation()">
+                                </div>
+                                <div class="text-center px-1">
+                                     <input type="text"
+                                        class="w-full bg-[#111] text-right text-gray-400 border border-gray-800 rounded text-[11px] focus:outline-none focus:border-green-500 py-1.5 pr-1 ${avgPrice <= 0 ? 'input-missing-price' : ''}"
+                                        placeholder="평단"
+                                        value="${avgPrice > 0 ? avgPrice.toLocaleString() : ''}"
+                                        onfocus="this.value = this.value.replace(/,/g, '')"
+                                        onblur="if(this.value.trim() === '') return; saveToServer('${symbol}', ${pos.qty}, '${accName}', parseInt(this.value.replace(/,/g,'')) || 0)"
+                                        onkeydown="if(event.key === 'Enter') this.blur()"
+                                        onclick="event.stopPropagation()">
+                                </div>
                             </div>
-                            <div class="col-span-2 text-center px-1">
-                                <input type="text"
-                                    class="w-full bg-[#111] text-center text-gray-300 border border-gray-700 rounded text-[10px] focus:outline-none focus:border-blue-500 py-1"
-                                    value="${pos.qty.toLocaleString()}"
-                                    onfocus="this.value = this.value.replace(/,/g, '')"
-                                    onblur="if(this.value.trim() === '') return; saveToServer('${symbol}', parseInt(this.value.replace(/,/g,'')) || 0, '${accName}')"
-                                    onkeydown="if(event.key === 'Enter') this.blur()"
-                                    onclick="event.stopPropagation()">
+                            <div class="text-right pr-1 overflow-hidden">
+                                <div class="text-gray-400 font-medium text-[12px] whitespace-nowrap">₩${stockCost.toLocaleString()}</div>
                             </div>
-                            <div class="col-span-2 text-center px-1">
-                                 <input type="text"
-                                    class="w-full bg-[#111] text-right text-gray-400 border border-gray-800 rounded text-[10px] focus:outline-none focus:border-green-500 py-1 px-1 ${avgPrice <= 0 ? 'input-missing-price' : ''}"
-                                    placeholder="평단"
-                                    value="${avgPrice > 0 ? avgPrice.toLocaleString() : ''}"
-                                    onfocus="this.value = this.value.replace(/,/g, '')"
-                                    onblur="if(this.value.trim() === '') return; saveToServer('${symbol}', ${pos.qty}, '${accName}', parseInt(this.value.replace(/,/g,'')) || 0)"
-                                    onkeydown="if(event.key === 'Enter') this.blur()"
-                                    onclick="event.stopPropagation()">
-                            </div>
-                            <div class="col-span-1 text-center font-bold">
+                            <div class="text-center font-bold">
                                  ${gainLossHtml}
                             </div>
-                             <div class="col-span-1 text-right overflow-hidden">
-                                <div class="text-white font-medium text-[11px] whitespace-nowrap">₩${val.toLocaleString()}</div>
-                            </div>
-                            <div class="col-span-1 text-right flex justify-end pr-1">
-                                 <button onclick="saveToServer('${symbol}', 0, '${accName}')" class="text-gray-600 hover:text-red-500 p-1" title="삭제">
+                            <div class="text-right pr-0 flex items-center justify-end gap-1 overflow-hidden">
+                                <div class="text-white font-extrabold text-[13px] whitespace-nowrap">₩${val.toLocaleString()}</div>
+                                <button onclick="saveToServer('${symbol}', 0, '${accName}')" class="text-gray-600 hover:text-red-500 p-0.5 shrink-0" title="삭제">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                       <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                     </svg>

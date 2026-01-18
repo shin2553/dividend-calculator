@@ -7,7 +7,7 @@ import re
 # CONFIGURATION
 # ==========================================
 PROJECT_NAME = "KR_ETF_Dividend_Insight"
-VERSION = "v1.1.0"
+VERSION = "v1.1.1"
 TARGET_HTML = 'kr_etf_investor/templates/index.html'
 # ==========================================
 

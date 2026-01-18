@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# PyInstaller
+build/
+dist/
+*.spec
+*.toc
+*.pkg
+base_library.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+backups/

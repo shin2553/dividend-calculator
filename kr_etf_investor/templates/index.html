@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KR ETF Dividend Insight v1.1.2</title>
+    <title>KR ETF Dividend Insight v1.1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -164,7 +164,7 @@
         <div class="flex items-center">
             <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">KR
                 ETF Dividend Insight</h1>
-            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.2</span>
+            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.3</span>
             <div class="tooltip-container">
                 <button onclick="openAbout()" class="ml-2 p-1 text-gray-400 hover:text-blue-400 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,20 +509,19 @@
             </div>
 
             <!-- Footer Summary -->
-            <div class="p-4 border-t border-gray-800 bg-[#111] shrink-0 flex flex-col gap-3">
-                <div class="flex justify-between items-center gap-4">
-                    <div class="flex flex-col">
-                        <span class="text-xs text-gray-500">종목 수</span>
-                        <span id="pf-count" class="text-lg font-semibold">0</span>
+            <div class="p-2 border-t border-gray-800 bg-[#111] shrink-0 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-gray-500">종목 수</span>
+                        <span id="pf-count" class="text-sm font-semibold text-gray-300">0</span>
                     </div>
-                    <button onclick="clearPortfolio()"
-                        class="bg-gray-800/50 hover:bg-red-900/40 text-gray-500 hover:text-red-400 border border-gray-700/50 hover:border-red-800/50 text-xs px-4 py-2 rounded transition flex items-center gap-2">
-                        <span>🗑️</span> 목록 초기화
-                    </button>
+                    <div class="text-[10px] text-gray-600">|</div>
+                    <div class="text-[10px] text-gray-600">Dev by <span class="text-gray-400">SHIN YONG HUI</span></div>
                 </div>
-                <div class="text-xs text-gray-400 text-center border-t border-gray-800/50 pt-2 font-medium">
-                    Developed by <span class="text-gray-200">SHIN YONG HUI</span>
-                </div>
+                <button onclick="clearPortfolio()"
+                    class="bg-gray-800/50 hover:bg-red-900/40 text-gray-500 hover:text-red-400 border border-gray-700/50 hover:border-red-800/50 text-[10px] px-3 py-1.5 rounded transition flex items-center gap-1">
+                    <span>🗑️</span> 초기화
+                </button>
             </div>
         </div>
     </div>
@@ -674,7 +673,7 @@
             </div>
 
             <h2 class="text-3xl font-black text-white mb-2 tracking-tight">KR ETF Dividend Insight</h2>
-            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.2 (Stable)</p>
+            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.3 (Stable)</p>
 
             <div class="space-y-4 text-base text-gray-400 mb-8 px-4">
                 <div class="flex justify-between border-b border-gray-800 pb-3">
@@ -1637,8 +1636,8 @@
                             <div class="col-span-4">
                                 <div class="font-bold text-[14px] text-gray-200 whitespace-normal break-all leading-snug group-hover:text-blue-400 transition">
                                     ${d.name}
-                                    ${isInCurrent ? '<span class="pf-badge ml-2 text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-normal">보유중</span>' : ''}
-                                    ${isInOther ? '<span class="pf-badge ml-2 text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-normal border border-gray-700">타 계좌 보유</span>' : ''}
+                                    ${isInCurrent ? '<span class="pf-badge ml-2 text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-normal whitespace-nowrap">보유중</span>' : ''}
+                                    ${isInOther ? '<span class="pf-badge ml-2 text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-normal border border-gray-700 whitespace-nowrap">타 계좌 보유</span>' : ''}
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
                                     <span class="text-xs text-gray-500">${item.symbol}</span>

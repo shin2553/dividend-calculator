@@ -3,6 +3,10 @@
 ## v1.1.3 (2026-01-18) - UI Layout & Typography Patch
 - **Badge Style Fix (Wrapping)**: 종목명 옆의 '보유중', '타 계좌 보유' 배지가 줄바꿈 현상이 발생하던 문제를 해결했습니다. (Whitespace-NoWrap 적용)
 - **Portfolio Footer Compact**: 포트폴리오 목록 하단의 요약 정보(종목 수 등)와 초기화 버튼, 개발자 크레딧 영역을 **한 줄로 통합**하여 불필요한 수직 공간 낭비를 제거했습니다.
+- **Font Size Optimization**: 사용자 요청에 따라 주요 정보의 가독성을 위해 폰트 크기를 조정했습니다.
+    - **주가 (Price)**: 11.5px -> 12px
+    - **변동률 (Change)**: 8px -> 10px
+    - **수익률 (Return)**: 11px -> 12px / 개별항목 10px -> 11px
 
 ## v1.1.2 (2026-01-18) - Data Integrity & Detail View Polish
 - **Systemic Bug Fix: Price Change Data Mapping**: 

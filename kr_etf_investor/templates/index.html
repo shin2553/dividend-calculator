@@ -1647,7 +1647,7 @@
 
                              <div class="col-span-2 flex items-center justify-end gap-2 pr-3 border-r border-white/5">
                                   <div class="text-right">
-                                      <div class="text-[10.5px] font-bold text-white">${d.price.toLocaleString()}</div>
+                                      <div class="text-[12px] font-bold text-white">${d.price.toLocaleString()}</div>
                                       <div class="mt-0.5 leading-none">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
                                   </div>
                                   <canvas id="sparkline-${item.symbol}" width="46" height="20" class="opacity-90"></canvas>
@@ -1827,7 +1827,7 @@
                     <h2 class="text-[26px] font-bold text-white leading-tight mb-2">${d.name}</h2>
                     <div class="text-[28px] font-bold flex items-center gap-2">
                         ${d.price.toLocaleString()} <span class="text-base text-gray-500 font-normal mt-1">KRW</span>
-                        <div class="ml-2">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0).replace('text-[7px]', 'text-[16px]')}</div>
+                        <div class="ml-2">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0).replace('text-[10px]', 'text-[16px]')}</div>
                         <canvas id="detail-sparkline" width="60" height="26" class="ml-2 opacity-90"></canvas>
                     </div>
                 </div>
@@ -2214,7 +2214,7 @@
                         </div>
                         <div class="text-center">
                              <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Ret.</div>
-                             <span class="${accRetClass} font-black text-[11px] leading-none">${accRetSign}${accReturn.toFixed(1)}%</span>
+                             <span class="${accRetClass} font-black text-[12px] leading-none">${accRetSign}${accReturn.toFixed(1)}%</span>
                         </div>
                         <div class="text-right pr-0 flex flex-col items-end">
                              <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Market Value</div>
@@ -2298,7 +2298,7 @@
                         if (avgPrice > 0) {
                             const gl = (d.price - avgPrice) / avgPrice * 100;
                             const glClass = gl >= 0 ? 'text-red-400' : 'text-blue-400';
-                            gainLossHtml = `<span class="text-[10px] ${glClass} font-bold">${gl >= 0 ? '+' : ''}${gl.toFixed(1)}%</span>`;
+                            gainLossHtml = `<span class="text-[11px] ${glClass} font-bold">${gl >= 0 ? '+' : ''}${gl.toFixed(1)}%</span>`;
                         }
 
                         // Check for recent addition (within 3 seconds)
@@ -2705,7 +2705,7 @@
             const rateStr = Math.abs(r).toFixed(2);
 
             // Format: ▲ 3.47%
-            return `<span class="${colorClass} font-bold text-[7px] line-height-none">${sign} ${rateStr}%</span>`;
+            return `<span class="${colorClass} font-bold text-[10px] line-height-none">${sign} ${rateStr}%</span>`;
         }
 
         // -----------------------

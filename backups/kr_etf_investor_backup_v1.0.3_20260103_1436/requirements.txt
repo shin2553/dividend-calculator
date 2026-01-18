@@ -1,0 +1,12 @@
+Flask==3.0.0
+yfinance==0.2.36
+finance-datareader==0.9.60
+pandas==2.2.0
+numpy==1.26.3
+requests==2.31.0
+gunicorn==21.2.0
+beautifulsoup4==4.12.3
+pykrx==1.0.46
+tqdm==4.66.1
+pystray==0.19.5
+Pillow==10.2.0

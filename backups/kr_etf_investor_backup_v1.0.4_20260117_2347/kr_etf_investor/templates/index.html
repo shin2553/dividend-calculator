@@ -1,0 +1,3590 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KR ETF Dividend Insight v1.0.7</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #e5e5e5;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .text-up {
+            color: #fe4242;
+        }
+
+        /* Red for up in Korea */
+        .text-down {
+            color: #3b82f6;
+        }
+
+        /* Blue for down in Korea */
+        .text-yield {
+            color: #4ade80;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+
+        .badge-new {
+            background-color: #3b82f6;
+            color: white;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        .transition-width {
+            transition: width 0.3s ease-in-out;
+        }
+
+        #global-error-banner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            background-color: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes flash-highlight {
+            0% {
+                background-color: rgba(59, 130, 246, 0.4);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .animate-flash {
+            animation: flash-highlight 3s ease-out;
+        }
+
+        .input-missing-price {
+            border-color: #f97316 !important;
+            /* Orange-500 */
+            color: #fdba74 !important;
+            /* Orange-300 */
+            background-color: rgba(249, 115, 22, 0.1) !important;
+        }
+
+        /* Custom Tooltip Styling */
+        .tooltip-container {
+            position: relative;
+        }
+
+        .custom-tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 10000;
+            top: calc(100% + 50px);
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #050505;
+            /* Fully opaque black */
+            color: #eee;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            white-space: normal;
+            /* Enable multi-line */
+            min-width: max-content;
+            /* Ensure wrap only if too wide */
+            max-width: 300px;
+            /* Limit width */
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            /* Stronger border */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
+            line-height: 1.5;
+            /* Better line height for multi-line if needed */
+        }
+
+        /* Show ONLY direct child tooltip on hover */
+        .tooltip-container:hover>.custom-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Essential for grid/flex parents to stretch the wrapper */
+        .tooltip-container.w-full {
+            width: 100%;
+        }
+
+        /* Alignment variations */
+        .tooltip-left>.custom-tooltip {
+            left: 0;
+            transform: none;
+        }
+
+        .tooltip-right>.custom-tooltip {
+            left: auto;
+            right: 0;
+            transform: none;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col">
+    <div id="global-error-banner" onclick="this.style.display='none'"></div>
+
+    <!-- TOP KPI BAR -->
+    <header
+        class="min-h-16 h-auto py-2 border-b border-gray-800 bg-black flex flex-wrap items-center px-4 justify-between shrink-0 relative z-[2000] gap-y-2">
+        <!-- Left Group: Title -->
+        <div class="flex items-center">
+            <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">KR
+                ETF Dividend Insight</h1>
+            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.0.7</span>
+            <div class="tooltip-container">
+                <button onclick="openAbout()" class="ml-2 p-1 text-gray-400 hover:text-blue-400 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </button>
+                <div class="custom-tooltip">배당 시뮬레이터 프로젝트 상세 정보 및 개발 로드맵을 확인합니다.</div>
+            </div>
+        </div>
+
+        <!-- Right Group: Controls (Buttons + KPIs) -->
+        <div class="flex flex-wrap items-stretch gap-4 justify-end flex-grow">
+            <!-- Action Buttons Group -->
+            <!-- Action Buttons Group -->
+            <div class="flex flex-col gap-2 w-[24rem]">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="tooltip-container tooltip-left w-full">
+                        <button onclick="openSimulator()"
+                            class="bg-gray-800 hover:bg-gray-700 text-green-400 text-xs px-2 py-1.5 rounded transition flex items-center gap-2 border border-gray-700 w-full justify-center whitespace-nowrap">
+                            <span>📈</span> Simulator
+                        </button>
+                        <div class="custom-tooltip">복리 효과와 적립금을 고려한 장기 배당 성장 시나리오를 정밀하게 시뮬레이션합니다.</div>
+                    </div>
+                    <div class="tooltip-container w-full">
+                        <button onclick="openAnalysis()"
+                            class="bg-gray-800 hover:bg-gray-700 text-blue-400 text-xs px-2 py-1.5 rounded transition flex items-center gap-2 border border-gray-700 w-full justify-center whitespace-nowrap">
+                            <span>🍰</span> Analysis
+                        </button>
+                        <div class="custom-tooltip">포트폴리오의 안정성을 위해 종목별·섹터별 자산 구성 비중을 심층 분석합니다.</div>
+                    </div>
+                    <div class="tooltip-container tooltip-right w-full">
+                        <button onclick="openCalendar()"
+                            class="bg-gray-800 hover:bg-gray-700 text-purple-400 text-xs px-2 py-1.5 rounded transition flex items-center gap-2 border border-gray-700 w-full justify-center whitespace-nowrap">
+                            <span>📅</span> Calendar
+                        </button>
+                        <div class="custom-tooltip">세전/세후 배당금 및 예상 지급 일정을 월별로 집계하여 현금 흐름을 시각화합니다.</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 w-full">
+                    <div class="relative w-full">
+                        <div class="tooltip-container tooltip-left w-full">
+                            <button onclick="triggerPriceRefresh()"
+                                class="bg-gray-800 hover:bg-gray-700 text-yellow-400 text-xs px-2 py-1.5 rounded transition flex items-center gap-2 border border-gray-700 w-full justify-center whitespace-nowrap">
+                                <span>⚡</span> Update Price
+                                <span id="refresh-timer"
+                                    class="text-[12px] text-gray-300 ml-1 font-mono w-6 text-right inline-block"></span>
+                            </button>
+                            <div class="custom-tooltip">주식 시장 변동을 즉각 반영하기 위해 보유 종목의 현재가를 최신 데이터로 갱신합니다.</div>
+                        </div>
+                        <div class="absolute -top-1 -right-1 z-30 tooltip-container tooltip-right">
+                            <input type="checkbox" id="auto-refresh-toggle"
+                                class="accent-blue-500 w-3 h-3 cursor-pointer relative z-20" checked
+                                onchange="toggleAutoRefresh()" onclick="event.stopPropagation()">
+                            <div class="custom-tooltip">활성 시 3분 주기로 시세를 자동 추적하여 포트폴리오를 실시간 유지합니다.</div>
+                        </div>
+                    </div>
+                    <div class="relative w-full">
+                        <div class="tooltip-container tooltip-right w-full">
+                            <button id="btn-update-data" onclick="triggerUpdate()"
+                                class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-2 py-1.5 rounded transition flex items-center justify-center gap-2 border border-gray-700 w-full whitespace-nowrap">
+                                <span>🔄</span> Update All
+                            </button>
+                            <div class="custom-tooltip">
+                                <strong>데이터베이스 전체 동기화 및 정합성 검사</strong> (수 분 소요)<br>
+                                • 신규 ETF 상장 데이터 및 기본 명세 명세 전수 검토<br>
+                                • 시장 연동 실시간 시세 데이터 정밀 동기화<br>
+                                • 공시 기반 최신 분배금(배당금) 이력 정보 일괄 갱신
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Group -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 w-full lg:w-auto justify-end">
+                <div class="tooltip-container tooltip-left w-full">
+                    <div
+                        class="flex flex-col justify-center px-3 py-1.5 bg-gray-900/50 rounded border border-white/5 h-full">
+                        <span class="text-[11.5px] text-gray-400 truncate mb-0.5">총 평가금액</span>
+                        <span id="kpi-total-val"
+                            class="font-bold text-[19px] md:text-[20px] text-white leading-none truncate">₩0</span>
+                    </div>
+                    <div class="custom-tooltip">보유 비중별 실시간 시장 시세를 합산한 포트폴리오의 총 평가 가치입니다.</div>
+                </div>
+                <div class="tooltip-container w-full">
+                    <div
+                        class="flex flex-col justify-center px-3 py-1.5 bg-gray-900/50 rounded border border-white/5 h-full">
+                        <span class="text-[11.5px] text-gray-400 truncate mb-0.5">내 투자 원금</span>
+                        <span id="kpi-my-cost"
+                            class="font-bold text-[19px] md:text-[20px] text-gray-200 leading-none truncate">₩0</span>
+                    </div>
+                    <div class="custom-tooltip">매칭된 평단가와 보유 수량을 기반으로 산출된 자본 투입 총액입니다.</div>
+                </div>
+                <div class="tooltip-container w-full">
+                    <div
+                        class="flex flex-col justify-center px-3 py-1.5 bg-gray-900/50 rounded border border-white/5 h-full">
+                        <span class="text-[11.5px] text-gray-400 truncate mb-0.5">내 투자 수익률 (평가손익)</span>
+                        <span id="kpi-my-return"
+                            class="font-bold text-[19px] md:text-[20px] leading-none truncate">0.00%</span>
+                    </div>
+                    <div class="custom-tooltip">투자 자본 대비 현재 시점의 시장 평가 차익 및 자본 이득 지표입니다.</div>
+                </div>
+                <div class="tooltip-container w-full">
+                    <div
+                        class="flex flex-col justify-center px-3 py-1.5 bg-gray-900/50 rounded border border-white/5 h-full">
+                        <span class="text-[11.5px] text-gray-400 truncate mb-0.5">월 현금흐름 (예상)</span>
+                        <span id="kpi-monthly"
+                            class="font-bold text-[19px] md:text-[20px] text-green-400 leading-none truncate">₩0</span>
+                    </div>
+                    <div class="custom-tooltip">연간 기대 배당 수익을 12분할 하여 산출한 월평균 가용 자산 흐름입니다.</div>
+                </div>
+                <div class="tooltip-container w-full">
+                    <div
+                        class="flex flex-col justify-center px-3 py-1.5 bg-gray-900/50 rounded border border-white/5 h-full">
+                        <span class="text-[11.5px] text-gray-400 truncate mb-0.5">연 현금흐름 (예상)</span>
+                        <span id="kpi-annual"
+                            class="font-bold text-[19px] md:text-[20px] text-gray-200 leading-none truncate">₩0</span>
+                    </div>
+                    <div class="custom-tooltip">공시된 배당 이력을 바탕으로 한 현재 포트폴리오의 연간 누적 기대 배당 총액입니다.</div>
+                </div>
+                <div class="tooltip-container tooltip-right w-full">
+                    <div
+                        class="flex flex-col justify-center px-3 py-1.5 bg-gray-900/50 rounded border border-white/5 h-full">
+                        <span class="text-[11.5px] text-gray-400 truncate mb-0.5">1년 보유 시뮬레이션 (TR)</span>
+                        <span id="kpi-return"
+                            class="font-bold text-[19px] md:text-[20px] leading-none truncate">0.00%</span>
+                    </div>
+                    <div class="custom-tooltip">보유 비중 유지 시 1년 전 시장 대비 포트폴리오의 가치 변동 및 상대 수익률입니다.</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENT CONTAINER -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- LEFT: UNIVERSE LIST -->
+        <div id="panel-left"
+            class="relative flex flex-col h-full bg-[#0a0a0a] border-r border-gray-800 shrink-0 min-w-0"
+            style="width: 50%;">
+            <!-- Search & Filter -->
+            <div class="p-3 border-b border-gray-800 space-y-2 shrink-0">
+                <div class="flex gap-2">
+                    <input type="text" id="search-input" placeholder="티커 또는 이름 검색"
+                        class="flex-1 bg-[#1a1a1a] border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-white">
+                    <!-- Custom Sort Dropdown -->
+                    <div class="relative inline-block text-left" id="sort-dropdown-container">
+                        <button onclick="toggleSortMenu()" id="sort-btn"
+                            class="h-full flex items-center gap-1 bg-[#1a1a1a] border border-gray-700 rounded px-2 text-xs text-gray-300 hover:text-white transition focus:outline-none whitespace-nowrap">
+                            <span id="current-sort-label">연 분배율 높은 순</span>
+                            <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="sort-menu"
+                            class="hidden absolute right-0 mt-1 w-64 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-xl z-50 overflow-visible">
+                            <!-- Options ... -->
+                            <div class="group relative flex items-start justify-between px-3 py-3 hover:bg-[#222] cursor-pointer border-b border-gray-800"
+                                onclick="setSort('name')">
+                                <div><span class="block text-xs text-gray-200 font-bold mb-0.5">이름순</span></div>
+                            </div>
+                            <div class="group relative flex items-start justify-between px-3 py-3 hover:bg-[#222] cursor-pointer border-b border-gray-800"
+                                onclick="setSort('yield')">
+                                <div><span class="block text-xs text-gray-200 font-bold mb-0.5">연분배율 높은순</span></div>
+                                <div class="relative ml-2 text-gray-500 p-1"><span class="text-[10px]">TTM 우선</span>
+                                </div>
+                            </div>
+                            <div class="group relative flex items-start justify-between px-3 py-3 hover:bg-[#222] cursor-pointer border-b border-gray-800"
+                                onclick="setSort('total_return_1y')">
+                                <div><span class="block text-xs text-gray-200 font-bold mb-0.5">총수익 1Y 높은순</span></div>
+                            </div>
+                            <div class="group relative flex items-start justify-between px-3 py-3 hover:bg-[#222] cursor-pointer"
+                                onclick="setSort('return_1y')">
+                                <div><span class="block text-xs text-gray-200 font-bold mb-0.5">가격상승 1Y 높은순</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Header (Dynamic) -->
+            <div id="list-header"
+                class="grid px-4 py-2 bg-[#151515] text-[10px] text-gray-500 font-semibold border-b border-gray-800 items-center shrink-0">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- List Area -->
+            <div id="universe-list"
+                class="flex-1 overflow-y-auto overflow-x-hidden space-y-0 min-h-0 relative scroll-smooth">
+                <!-- Items injected here -->
+            </div>
+
+            <!-- Scroll To Top Button -->
+            <button id="btn-scroll-top" onclick="scrollToTop()"
+                class="absolute bottom-6 right-6 w-10 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none z-50"
+                style="right: 24px;">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- SPLITTER 1 -->
+        <div id="splitter-1"
+            class="w-[4px] bg-[#111] hover:bg-blue-600 cursor-col-resize z-50 transition-colors flex flex-col justify-center items-center group shrink-0">
+            <div class="w-0.5 h-8 bg-gray-700 group-hover:bg-white rounded"></div>
+        </div>
+
+        <!-- CENTER: DETAIL (Hidden by default) -->
+        <div id="panel-center"
+            class="hidden flex-col h-full bg-[#050505] border-r border-gray-800 overflow-y-auto relative min-w-0"
+            style="width: 33.33%; display: none;">
+            <button onclick="closeDetail()"
+                class="absolute top-4 right-4 text-gray-500 hover:text-white z-10 p-2">✕</button>
+            <div id="detail-content" class="p-6 space-y-6">
+                <!-- Detail Injected Here -->
+            </div>
+        </div>
+
+        <!-- SPLITTER 2 -->
+        <div id="splitter-2"
+            class="hidden w-[4px] bg-[#111] hover:bg-blue-600 cursor-col-resize z-50 transition-colors flex-col justify-center items-center group shrink-0">
+            <div class="w-0.5 h-8 bg-gray-700 group-hover:bg-white rounded"></div>
+        </div>
+
+        <!-- RIGHT: PORTFOLIO -->
+        <div id="panel-right" class="flex flex-col h-full bg-[#0a0a0a] min-w-0 shrink-0" style="flex: 1;">
+            <div class="p-3 border-b border-gray-800 shrink-0 flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-bold text-gray-300 text-sm">My Holdings</h2>
+                    <div class="flex items-center gap-2">
+                        <!-- View Mode Toggle -->
+                        <div class="flex bg-[#1a1a1a] border border-gray-800 rounded p-1 items-center gap-1"
+                            title="통계/차트 표시 기준">
+                            <button onclick="setViewMode('all')" id="btn-view-all"
+                                class="px-3 py-1 text-[11px] rounded font-bold transition bg-blue-600 text-white shadow shadow-blue-500/20">전체</button>
+                            <button onclick="setViewMode('current')" id="btn-view-current"
+                                class="px-3 py-1 text-[11px] rounded font-bold transition text-gray-500 hover:bg-[#333] hover:text-gray-300">현재계좌</button>
+                        </div>
+                        <div class="flex bg-[#1a1a1a] border border-gray-800 rounded p-1 items-center gap-1">
+                            <button onclick="togglePortfolioView('list')" id="btn-pf-list"
+                                class="px-3 py-1 text-[11px] rounded font-bold transition bg-blue-600 text-white shadow shadow-blue-500/20">List</button>
+                            <button onclick="togglePortfolioView('trend')" id="btn-pf-trend"
+                                class="px-3 py-1 text-[11px] rounded font-bold transition text-gray-500 hover:text-white">Trend</button>
+                        </div>
+                        <button onclick="openManageModal()" class="text-gray-400 hover:text-white text-xs ml-1"
+                            title="Manage Portfolios">📂</button>
+                    </div>
+                </div>
+                <!-- Account Selection & Management -->
+                <div class="flex items-center gap-2 bg-[#151515] p-1.5 rounded border border-gray-800">
+                    <select id="active-account-select" onchange="setActiveAccount(this.value)"
+                        class="bg-[#1a1a1a] border border-gray-700 rounded text-xs px-2 py-1 flex-1 text-gray-300 focus:outline-none focus:border-blue-500">
+                        <option value="기본 계좌">기본 계좌</option>
+                    </select>
+                    <div class="flex gap-1">
+                        <button onclick="onClickAddAccount()"
+                            class="w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition"
+                            title="New Account">+</button>
+                        <button onclick="onClickRenameAccount()"
+                            class="w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition text-[10px]"
+                            title="Rename Current Account">✎</button>
+                        <button onclick="onClickDeleteAccount()"
+                            class="w-6 h-6 flex items-center justify-center bg-gray-800 hover:bg-red-900/40 rounded text-gray-500 hover:text-red-400 transition text-[10px]"
+                            title="Delete Current Account">🗑</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TREND VIEW (Hidden by default, stacks on top) -->
+            <div id="view-portfolio-trend"
+                class="hidden shrink-0 h-[280px] flex-col border-b border-gray-800 bg-[#0e0e0e]">
+                <!-- Stats Header -->
+                <div class="flex justify-around items-center py-2 px-4 border-b border-gray-800 text-xs">
+                    <div class="text-center">
+                        <div class="text-gray-500 text-[10px]">Start Value</div>
+                        <div id="trend-start-val" class="font-bold text-gray-300">-</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-500 text-[10px]">End Value</div>
+                        <div id="trend-end-val" class="font-bold text-white">-</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-500 text-[10px]">Return</div>
+                        <div id="trend-return" class="font-bold text-gray-300">-</div>
+                    </div>
+                </div>
+
+                <div class="flex-1 relative p-2">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+                <div class="text-center text-[10px] text-gray-600 pb-1">
+                    * 1Y Backtest (Qty Held Constant)
+                </div>
+            </div>
+
+            <!-- LIST VIEW (Always flex-1, takes remaining space) -->
+            <div id="view-portfolio-list" class="flex-1 flex flex-col overflow-hidden min-h-0">
+                <div
+                    class="grid grid-cols-12 px-3 py-2 bg-[#151515] text-[11px] text-gray-300 font-bold border-b border-gray-800 shrink-0 text-center items-center">
+                    <div class="col-span-3 text-left pl-2 cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('name')">
+                        종목명 <span id="pf-sort-icon-name" class="text-[9px] text-blue-400"></span>
+                    </div>
+                    <div class="col-span-2 text-right pr-4 cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('price')">
+                        현재가 <span id="pf-sort-icon-price" class="text-[9px] text-blue-400"></span>
+                    </div>
+                    <div class="col-span-2 text-center cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('qty')">
+                        수량 <span id="pf-sort-icon-qty" class="text-[9px] text-blue-400"></span>
+                    </div>
+                    <div class="col-span-2 text-center cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('avg_price')">
+                        평단 <span id="pf-sort-icon-avg_price" class="text-[9px] text-blue-400"></span>
+                    </div>
+                    <div class="col-span-1 text-center cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('return')">
+                        수익 <span id="pf-sort-icon-return" class="text-[9px] text-blue-400"></span>
+                    </div>
+                    <div class="col-span-1 text-right cursor-pointer hover:text-white select-none group"
+                        onclick="setPortfolioSort('value')">
+                        평가금액 <span id="pf-sort-icon-value" class="text-[9px] text-blue-400"></span>
+                    </div>
+                    <div class="col-span-1"></div>
+                </div>
+                <div id="portfolio-list" class="flex-1 overflow-y-auto p-1 space-y-1">
+                    <!-- Holdings injected here -->
+                </div>
+            </div>
+
+            <!-- Footer Summary -->
+            <div class="p-4 border-t border-gray-800 bg-[#111] shrink-0 flex flex-col gap-3">
+                <div class="flex justify-between items-center gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-gray-500">종목 수</span>
+                        <span id="pf-count" class="text-lg font-semibold">0</span>
+                    </div>
+                    <button onclick="clearPortfolio()"
+                        class="bg-gray-800/50 hover:bg-red-900/40 text-gray-500 hover:text-red-400 border border-gray-700/50 hover:border-red-800/50 text-xs px-4 py-2 rounded transition flex items-center gap-2">
+                        <span>🗑️</span> 목록 초기화
+                    </button>
+                </div>
+                <div class="text-xs text-gray-400 text-center border-t border-gray-800/50 pt-2 font-medium">
+                    Developed by <span class="text-gray-200">SHIN YONG HUI</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-manage" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
+        <div class="bg-[#1a1a1a] border border-gray-700 rounded-lg w-[380px] p-4 text-gray-200">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                <h3 class="font-bold text-sm">Portfolio Management</h3>
+                <button onclick="closeManageModal()" class="text-gray-500 hover:text-white">✕</button>
+            </div>
+
+            <!-- Save Section -->
+            <div class="mb-4">
+                <div class="text-[10px] text-gray-500 mb-1">SAVE CURRENT AS</div>
+                <div class="flex gap-2">
+                    <input type="text" id="save-name-input" placeholder="Name..."
+                        class="bg-[#333] border border-gray-600 rounded text-xs px-2 py-1 flex-1 min-w-0 text-white focus:outline-none focus:border-blue-500">
+                    <button onclick="saveCurrentPortfolio()"
+                        class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded shrink-0">Save</button>
+                </div>
+            </div>
+
+            <!-- Load Section -->
+            <div>
+                <div class="text-[10px] text-gray-500 mb-1">SAVED PORTFOLIOS</div>
+                <div id="saved-list"
+                    class="max-h-[150px] overflow-y-auto space-y-1 border border-gray-800 rounded p-1 bg-[#111]">
+                    <div class="text-center text-xs text-gray-600 py-2">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Import Section -->
+            <div class="mt-4 pt-4 border-t border-gray-700">
+                <div class="text-[10px] text-gray-500 mb-1">IMPORT PORTFOLIO (CSV Only)</div>
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <input type="file" id="import-file-input" accept=".csv,.txt" class="hidden"
+                            onchange="importPortfolioFile(this)">
+                        <button onclick="document.getElementById('import-file-input').click()"
+                            class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-2 rounded flex items-center gap-2 w-full justify-center transition">
+                            <span>📥</span> Upload CSV
+                        </button>
+                    </div>
+
+                    <div class="text-[10px] text-gray-500 mt-2 mb-1">EXPORT ACTIVE PORTFOLIO</div>
+                    <div class="flex gap-2">
+                        <button onclick="exportPortfolio('', 'csv')"
+                            class="flex-1 bg-gray-800 hover:bg-gray-700 text-green-400 border border-gray-700 text-xs px-2 py-1.5 rounded transition">
+                            <span>📤</span> Export CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATE RESULT MODAL -->
+    <div id="modal-update-result" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
+        <div class="bg-[#1a1a1a] border border-gray-700 rounded-lg w-[400px] p-6 text-gray-200 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                <h3 class="font-bold text-lg text-white">업데이트 완료</h3>
+                <button onclick="closeUpdateModal()" class="text-gray-500 hover:text-white">✕</button>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-[#222] p-3 rounded">
+                        <div class="text-xs text-gray-500">총 종목 수</div>
+                        <div id="res-total" class="text-xl font-bold text-white">-</div>
+                    </div>
+                    <div class="bg-[#222] p-3 rounded">
+                        <div class="text-xs text-gray-500">업데이트됨</div>
+                        <div id="res-updated" class="text-xl font-bold text-blue-400">-</div>
+                    </div>
+                </div>
+                <div class="bg-[#2a2a2a] p-3 rounded border border-gray-700">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs text-gray-400">신규 추가된 ETF</span>
+                        <span id="res-new-count"
+                            class="text-xs font-bold bg-blue-600 px-1.5 rounded text-white">0</span>
+                    </div>
+                    <div id="res-new-list"
+                        class="text-[10px] text-gray-300 h-16 overflow-y-auto w-full break-all leading-relaxed">
+                        -
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeUpdateModal()"
+                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded transition">확인 (화면
+                리프레시)</button>
+        </div>
+    </div>
+
+    <!-- CALENDAR MODAL -->
+    <div id="modal-calendar"
+        class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div
+            class="bg-[#111] border border-gray-800 w-[800px] h-[500px] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+            <div class="flex justify-between items-center px-4 py-3 border-b border-gray-800 bg-[#1a1a1a]">
+                <h3 class="text-sm font-bold text-purple-400 flex items-center gap-2">
+                    <span>📅</span> 월별 예상 배당금 (Dividend Calendar)
+                </h3>
+                <button onclick="closeCalendar()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div class="flex-1 p-6 flex flex-col relative bg-[#111]">
+                <div class="absolute top-4 right-4 text-[10px] text-gray-500">
+                    * 과거 배당 지급월 기반 추정 (정확하지 않을 수 있음)
+                </div>
+                <div class="w-full h-full">
+                    <canvas id="chart-calendar"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANALYSIS MODAL -->
+    <div id="modal-analysis"
+        class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div
+            class="bg-[#111] border border-gray-800 w-[600px] h-[500px] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+            <div class="flex justify-between items-center px-4 py-3 border-b border-gray-800 bg-[#1a1a1a]">
+                <h3 class="text-sm font-bold text-blue-400 flex items-center gap-2">
+                    <span>🍰</span> 포트폴리오 섹터 분석 (Beta)
+                </h3>
+                <button onclick="closeAnalysis()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div class="flex-1 p-6 flex flex-col items-center justify-center relative">
+                <div class="absolute top-4 right-4 text-[10px] text-gray-500">
+                    * 데이터 업데이트 필요 (섹터 정보 미보유 시 '기타'로 분류)
+                </div>
+                <div class="w-[80%] h-[80%]">
+                    <canvas id="chart-sector"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABOUT MODAL -->
+    <div id="modal-about"
+        class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center backdrop-blur-md">
+        <div
+            class="bg-[#111] border border-gray-800 w-[450px] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform transition-all scale-100 p-8 text-center ring-1 ring-white/10">
+            <div class="mb-6 flex justify-center">
+                <div
+                    class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <span class="text-3xl">📈</span>
+                </div>
+            </div>
+
+            <h2 class="text-3xl font-black text-white mb-2 tracking-tight">KR ETF Dividend Insight</h2>
+            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.0.7 (Stable)</p>
+
+            <div class="space-y-4 text-base text-gray-400 mb-8 px-4">
+                <div class="flex justify-between border-b border-gray-800 pb-3">
+                    <span class="text-gray-500">Developer</span>
+                    <span class="text-white font-black text-lg">SHIN YONG HUI</span>
+                </div>
+                <div class="flex justify-between border-b border-gray-800 pb-2">
+                    <span class="text-gray-500">License</span>
+                    <span class="text-gray-200 font-semibold">Personal Use Only</span>
+                </div>
+                <div class="flex justify-between border-b border-gray-800 pb-2">
+                    <span class="text-gray-500">Framework</span>
+                    <span class="text-gray-200 font-semibold">Python Flask & Chart.js</span>
+                </div>
+            </div>
+
+            <div
+                class="bg-[#1a1a1a] border border-gray-800 p-4 rounded-xl text-[10px] text-gray-500 text-left mb-8 leading-relaxed italic">
+                "이 프로그램은 투자 보조 도구일 뿐이며, 제공되는 모든 데이터는 실제 시장 상황과 다를 수 있습니다. 모든 투자의 책임은 본인에게 있습니다."
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="openManual()"
+                    class="w-full bg-blue-900/40 hover:bg-blue-900/60 text-blue-400 border border-blue-900/50 text-sm py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <span>📖</span> 사용자 매뉴얼 열기
+                </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="closeAbout()"
+                        class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition">
+                        Close
+                    </button>
+                    <button onclick="exitProgram()"
+                        class="bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/30 font-bold py-3 rounded-xl transition">
+                        Exit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Error Handler
+        window.onerror = function (message, source, lineno, colno, error) {
+            const banner = document.getElementById('global-error-banner');
+            if (banner) {
+                banner.innerText = `Script Error: ${message} (Line ${lineno})`;
+                banner.style.display = 'block';
+            }
+            console.error("Global Error Caught:", message, source, lineno, colno, error);
+            return false; // Let default handler run too
+        };
+
+        async function openManual() {
+            try {
+                await fetch('/api/system/manual', { method: 'POST' });
+            } catch (error) {
+                console.error("Failed to open manual:", error);
+                alert("매뉴얼을 열 수 없습니다.");
+            }
+        }
+    </script>
+
+    <!-- SCRIPT -->
+    <!-- SIMULATOR MODAL -->
+    <div id="modal-simulator"
+        class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div
+            class="bg-[#111] border border-gray-800 w-[95%] h-[90%] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center px-4 py-3 border-b border-gray-800 bg-[#1a1a1a]">
+                <h3 class="text-sm font-bold text-green-400 flex items-center gap-2">
+                    <span>📈</span> 배당 재투자 시뮬레이터
+                </h3>
+                <button onclick="closeSimulator()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            <!-- Body -->
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Left: Inputs -->
+                <div
+                    class="w-[300px] border-r border-gray-800 bg-[#151515] p-4 overflow-y-auto shrink-0 flex flex-col gap-4">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">초기 투자금 (원)</label>
+                            <input type="number" id="sim-principal" value="150000000"
+                                class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">월 추가 투자금 (원)</label>
+                            <input type="number" id="sim-monthly" value="500000"
+                                class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs focus:border-green-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">연 배당률 (%)</label>
+                                <input type="number" id="sim-yield" value="10" step="0.1"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">연 주가상승 (%)</label>
+                                <input type="number" id="sim-growth" value="10" step="0.1"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">배당 성장률 (%)</label>
+                                <input type="number" id="sim-div-growth" value="0" step="0.1"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">물가상승률 (%)</label>
+                                <input type="number" id="sim-inflation" value="0" step="0.1"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs focus:border-green-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">세율 (%)</label>
+                                <input type="number" id="sim-tax" value="15.4" step="0.1"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1">배당 재투자 비율 (%)</label>
+                            <input type="range" id="sim-reinvest-ratio" min="0" max="100" value="100"
+                                class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <div class="text-right text-[10px] text-green-400 font-bold" id="sim-reinvest-val">100%
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">기간 (년)</label>
+                                <input type="number" id="sim-years" value="10"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">목표 월 배당 (원)</label>
+                                <input type="number" id="sim-target" value="5000000"
+                                    class="w-full bg-[#222] text-gray-200 border border-gray-700 rounded px-2 py-1 text-xs">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="runSimulation()"
+                        class="mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded text-sm transition shadow-lg shadow-green-900/20">
+                        ▶ 시뮬레이션 시작
+                    </button>
+
+                    <button onclick="exportSimulationCSV()" id="btn-sim-csv"
+                        class="mt-2 bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded text-xs transition"
+                        disabled>
+                        📁 CSV 저장 (실행 후 가능)
+                    </button>
+                </div>
+
+                <!-- Right: Visualization -->
+                <div class="flex-1 flex flex-col bg-[#0a0a0a] min-w-0">
+                    <!-- Charts -->
+                    <div class="h-[50%] p-4 border-b border-gray-800 flex gap-4 min-w-0">
+                        <div class="flex-1 bg-[#151515] rounded border border-gray-800 p-2 relative min-w-0">
+                            <canvas id="chart-sim-asset"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Table & Log -->
+                    <div class="flex-1 p-4 overflow-hidden flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-xs font-bold text-gray-400">상세 데이터 (월별)</h4>
+                            <div class="text-[10px] text-gray-500" id="sim-status">결과가 여기에 표시됩니다.</div>
+                        </div>
+                        <div class="flex-1 overflow-auto border border-gray-800 rounded bg-[#111]">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-[#222] text-[10px] text-gray-400 sticky top-0">
+                                    <tr>
+                                        <th class="p-2 font-medium">기간</th>
+                                        <th class="p-2 font-medium text-right">총자산</th>
+                                        <th class="p-2 font-medium text-right text-orange-400">월배당</th>
+                                        <th class="p-2 font-medium text-right">재투자</th>
+                                        <th class="p-2 font-medium text-right">현금수취</th>
+                                        <th class="p-2 font-medium text-right text-gray-500">누적원금</th>
+                                        <th class="p-2 font-medium text-right text-green-500">누적수익</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-sim-body" class="text-[11px] text-gray-300 divide-y divide-gray-800">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let universe = [];
+        let portfolioData = { accounts: {} };
+        let currentAccountName = "기본 계좌";
+        let currentTicker = null;
+        let chart = null;
+        let isDetailOpen = false;
+        let currentSort = 'yield'; // Default
+        let viewMode = 'all'; // 'all' or 'current'
+
+        // Portfolio Sort State
+        let pfSort = { key: 'added_at', order: 'desc' }; // Default sort: Recents first
+
+        // Layout State
+        let wLeft = 33.33;
+        let wCenter = 33.33;
+        let wLeft2 = 50; // Default 2-column width for Left Panel
+
+        // Optimization: Debounce storage
+        let saveTimeout = null;
+        let pendingSaves = []; // List of {symbol, qty, account}
+
+        const elUniverseList = document.getElementById('universe-list');
+        const elPortfolioList = document.getElementById('portfolio-list');
+        let portfolioHistory = {};
+        let pfChart = null;
+        let currentPfView = 'list'; // 'list' or 'trend'
+
+        // Initial Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            updateLayout(); // Set initial layout
+            await Promise.all([loadUniverse(), loadPortfolio()]);
+            renderUniverse();
+            renderPortfolio();
+            renderKPI();
+
+
+
+            // Check initial update status
+            checkUpdateStatus();
+
+            // Click outside to close sort menu
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('sort-menu');
+                const btn = document.getElementById('sort-btn');
+                if (menu && !menu.classList.contains('hidden')) {
+                    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                        menu.classList.add('hidden');
+                    }
+                }
+            });
+
+            // Scroll Listener for Top Button
+            const btnScroll = document.getElementById('btn-scroll-top');
+            if (btnScroll && elUniverseList) {
+                elUniverseList.addEventListener('scroll', () => {
+                    if (elUniverseList.scrollTop > 300) {
+                        btnScroll.classList.remove('opacity-0', 'pointer-events-none');
+                    } else {
+                        btnScroll.classList.add('opacity-0', 'pointer-events-none');
+                    }
+                });
+            }
+        });
+
+        // -----------------------
+        // Layout Logic
+        // -----------------------
+
+        function updateLayout() {
+            const left = document.getElementById('panel-left');
+            const center = document.getElementById('panel-center');
+            const right = document.getElementById('panel-right');
+            const splitter2 = document.getElementById('splitter-2');
+            const header = document.getElementById('list-header');
+
+            if (isDetailOpen) {
+                // 3-Column Mode
+                left.style.display = 'flex';
+                center.style.display = 'flex';
+                splitter2.style.display = 'flex';
+
+                // Prevent shrinking
+                left.style.flex = 'none';
+                center.style.flex = 'none';
+
+                left.style.width = wLeft + '%';
+                center.style.width = wCenter + '%';
+                right.style.flex = '1';
+
+                // Compact Header
+                header.className = "grid grid-cols-12 px-2 py-1 bg-[#151515] text-[10px] text-gray-500 font-semibold border-b border-gray-800 items-center";
+                header.innerHTML = `
+                    <div class="col-span-8 pl-1">Name</div>
+                    <div class="col-span-4 text-right">Yield</div>
+                `;
+            } else {
+                // 2-Column Mode
+                left.style.display = 'flex';
+                center.style.display = 'none';
+                splitter2.style.display = 'none';
+
+                // Prevent shrinking
+                left.style.flex = 'none';
+
+                left.style.width = wLeft2 + '%';
+                right.style.flex = '1';
+
+                // Full Header
+                header.className = "grid grid-cols-12 px-4 py-2 bg-[#151515] text-[10px] text-gray-500 font-semibold border-b border-gray-800 items-center";
+                header.innerHTML = `
+                    <div class="col-span-4 pl-1">Name</div>
+                    <div class="col-span-2 text-right pr-6">Price (KRW)</div>
+                    <div class="col-span-4 text-center">Return (1M / 3M / 6M / 1Y)</div>
+                    <div class="col-span-2 flex justify-end gap-3 text-right">
+                        <span class="flex-1">Yield</span>
+                        <div class="w-8"></div> <!-- Spacer for Add Button alignment -->
+                    </div>
+                `;
+            }
+
+            renderUniverse();
+        }
+
+        // Scroll to Top Logic
+        function scrollToTop() {
+            const list = document.getElementById('universe-list');
+            list.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Resizing Logic
+        const container = document.querySelector('.flex-1.flex.overflow-hidden.relative'); // Corrected selector
+        const s1 = document.getElementById('splitter-1');
+        const s2 = document.getElementById('splitter-2');
+
+        let isResizing = false;
+        let currentSplitter = null;
+
+        [s1, s2].forEach(s => {
+            s.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                currentSplitter = e.target.closest('div[id^="splitter"]');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const totalW = container.clientWidth;
+            const x = e.clientX;
+            const xPct = (x / totalW) * 100;
+
+            if (currentSplitter.id === 'splitter-1') {
+                if (isDetailOpen) {
+                    if (xPct < 15 || xPct > 45) return;
+                    wLeft = xPct;
+                    // Center width remains constant? Or we push center?
+                    // Better UX: resize Left, Center shifts.
+                } else {
+                    if (xPct < 20 || xPct > 80) return;
+                    wLeft2 = xPct;
+                }
+            } else if (currentSplitter.id === 'splitter-2') {
+                if (!isDetailOpen) return;
+                // Center Width = xPct - wLeft
+                let newCenter = xPct - wLeft;
+                if (newCenter < 20 || (wLeft + newCenter) > 85) return;
+                wCenter = newCenter;
+            }
+            updateLayout();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        function openDetail(symbol) {
+            currentTicker = symbol;
+            isDetailOpen = true;
+            updateLayout();
+            renderDetail(symbol);
+        }
+
+        function closeDetail() {
+            isDetailOpen = false;
+            currentTicker = null;
+            updateLayout();
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('modal-update-result').classList.add('hidden');
+            // Auto Refresh Data
+            location.reload();
+        }
+
+        function openAbout() {
+            document.getElementById('modal-about').classList.remove('hidden');
+        }
+
+        function closeAbout() {
+            document.getElementById('modal-about').classList.add('hidden');
+        }
+
+        async function exitProgram() {
+            if (!confirm("프로그램을 완전히 종료하시겠습니까?")) return;
+
+            try {
+                const response = await fetch('/api/system/shutdown', { method: 'POST' });
+                const result = await response.json();
+                if (result.status === 'shutting_down') {
+                    document.body.innerHTML = `
+                        <div class="h-screen flex items-center justify-center bg-black text-gray-400 p-8 text-center">
+                            <div>
+                                <h1 class="text-2xl font-bold text-white mb-4">Shutting Down...</h1>
+                                <p>프로그램이 종료되었습니다. 브라우저 창을 닫으셔도 됩니다.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error("Shutdown failed:", error);
+                alert("종료 요청에 실패했습니다.");
+            }
+        }
+
+        // -----------------------
+        // System Update Logic
+        // -----------------------
+        let updatePollInterval = null;
+
+        async function triggerUpdate() {
+            if (!confirm('데이터 업데이트를 시작하시겠습니까? (수 분 소요될 수 있습니다)')) return;
+
+            const btn = document.getElementById('btn-update-data');
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span>⏳</span> Starting...';
+
+                const res = await fetch('/api/system/update?full=true', { method: 'POST' });
+                const data = await res.json();
+
+                if (res.status === 409) {
+                    alert('이미 업데이트가 진행 중입니다.');
+                }
+
+                checkUpdateStatus(); // Start polling
+
+            } catch (e) {
+                console.error(e);
+                alert('업데이트 시작 실패');
+                btn.disabled = false;
+                btn.innerHTML = '<span>🔄</span> Update All';
+            }
+        }
+
+        let wasRunning = false;
+
+        async function checkUpdateStatus() {
+            const btn = document.getElementById('btn-update-data');
+
+            // Ensure we don't stack intervals
+            if (updatePollInterval) clearInterval(updatePollInterval);
+
+            // Initial check immediately
+            try {
+                const res = await fetch('/api/system/status');
+                const status = await res.json();
+                if (status.is_running) {
+                    wasRunning = true; // Mark that we saw it running
+                    updateBtnState(btn, status);
+                } else {
+                    // Not running on load. Check if we missed it?
+                    // If we just loaded and it's done, we don't show modal to avoid loop.
+                    resetBtnState(btn);
+                    // But if we have an error message remaining?
+                    if (status.message && status.message.startsWith('Error')) {
+                        // Optional: Show error badge? For now do nothing on load.
+                    }
+                }
+            } catch (e) { console.error(e); }
+
+            updatePollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/system/status');
+                    const status = await res.json();
+
+                    console.log('Update Status:', status); // Debug log
+
+                    if (status.is_running) {
+                        wasRunning = true;
+                        updateBtnState(btn, status);
+                    } else {
+                        // Finished or Idle
+                        clearInterval(updatePollInterval);
+                        updatePollInterval = null;
+
+                        resetBtnState(btn);
+
+                        // Only show result if we were previously watching it run
+                        if (wasRunning) {
+                            if (status.summary) {
+                                showUpdateResult(status.summary);
+                            } else if (status.message && status.message.startsWith('Error')) {
+                                alert('업데이트 실패: ' + status.message);
+                            }
+                            wasRunning = false; // Reset
+                        }
+                    }
+                } catch (e) {
+                    console.error("Status check failed", e);
+                }
+            }, 2000);
+        }
+
+        let isCancelling = false;
+
+        async function cancelUpdate() {
+            if (!confirm('정말 업데이트를 중단하시겠습니까?')) return;
+            try {
+                isCancelling = true;
+                const btn = document.getElementById('btn-update-data');
+                btn.innerHTML = '<span>🛑</span> 중단 중...';
+                btn.disabled = true;
+
+                const res = await fetch('/api/system/stop_update', { method: 'POST' });
+                if (res.ok) {
+                    console.log('Cancellation requested');
+                }
+            } catch (e) {
+                console.error(e);
+                isCancelling = false;
+            }
+        }
+
+        function updateBtnState(btn, status) {
+            if (isCancelling) return;
+
+            btn.disabled = false;
+            btn.onclick = cancelUpdate;
+            btn.className = "bg-blue-900/50 hover:bg-red-900/30 text-blue-200 hover:text-red-200 text-xs px-3 py-1.5 rounded transition flex items-center justify-center gap-2 border border-blue-800 cursor-pointer whitespace-nowrap w-full";
+            const pct = status.progress || 0;
+            // Shortened Text
+            btn.innerHTML = `<span>⏳</span> ${status.message || 'Updating...'} ${pct}%`;
+        }
+
+        function resetBtnState(btn) {
+            isCancelling = false;
+            btn.disabled = false;
+            btn.onclick = triggerUpdate;
+            btn.className = "bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-1.5 rounded transition flex items-center justify-center gap-2 border border-gray-700 whitespace-nowrap w-full";
+            btn.innerHTML = '<span>🔄</span> Update All';
+        }
+
+        function showUpdateResult(summary) {
+            console.log('Showing Summary:', summary);
+            try {
+                document.getElementById('res-total').innerText = summary.total;
+                document.getElementById('res-updated').innerText = summary.updated_count;
+                document.getElementById('res-new-count').innerText = summary.new_count;
+
+                const listEl = document.getElementById('res-new-list');
+                if (summary.new_symbols && summary.new_symbols.length > 0) {
+                    listEl.innerText = summary.new_symbols.join(", ");
+                } else {
+                    listEl.innerText = "없음";
+                }
+
+                document.getElementById('modal-update-result').classList.remove('hidden');
+            } catch (e) {
+                console.error("Error showing modal:", e);
+                alert('업데이트 완료되었으나 결과 표시에 실패했습니다.');
+            }
+        }
+
+        // -----------------------
+        // API Calls
+        // -----------------------
+        // Global Lookup Map
+        let universeMap = {};
+
+        async function loadUniverse() {
+            try {
+                // Show loading state if empty?
+                // if (universe.length === 0) showMessage("데이터 로딩중...", "info");
+
+                const res = await fetch('/api/universe');
+                if (!res.ok) throw new Error('API Error: ' + res.status);
+
+                universe = await res.json();
+
+                if (!Array.isArray(universe)) {
+                    throw new Error("Invalid data format");
+                }
+
+                // Build Map for O(1) Access
+                universeMap = {};
+                universe.forEach(u => universeMap[u.symbol] = u);
+
+                // If successful and was empty, we might want to clear message?
+                // But renderUniverse will handle "No items" logic.
+
+            } catch (e) {
+                console.error("loadUniverse failed:", e);
+                universe = []; // Safer to have empty array than undefined
+                if (elUniverseList) {
+                    elUniverseList.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-40 text-gray-500 gap-2">
+                             <div class="text-2xl">⚠️</div>
+                             <div class="text-sm">데이터를 불러오지 못했습니다.</div>
+                             <div class="text-xs text-red-400">${e.message}</div>
+                             <button onclick="loadUniverse().then(renderUniverse)" class="mt-2 bg-gray-800 px-3 py-1 rounded hover:bg-gray-700 text-xs text-white">다시 시도</button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function loadPortfolio() {
+            try {
+                const res = await fetch('/api/portfolio');
+                portfolioData = await res.json();
+                if (!portfolioData.accounts) portfolioData.accounts = {};
+
+                // Set current account if not set or doesn't exist anymore
+                const accNames = Object.keys(portfolioData.accounts);
+                if (accNames.length > 0 && (!currentAccountName || !portfolioData.accounts[currentAccountName])) {
+                    currentAccountName = accNames[0];
+                } else if (accNames.length === 0) {
+                    currentAccountName = "기본 계좌";
+                }
+            } catch (e) { console.error(e); portfolioData = { accounts: {} }; }
+        }
+
+        // Debounce variables for saveToServer (using existing declarations at top)
+
+        async function saveToServer(symbol, qty, accountName = null, avgPrice = null) {
+            const acc = accountName || currentAccountName;
+
+            // 1. Optimistic Update
+            if (!portfolioData.accounts[acc]) {
+                portfolioData.accounts[acc] = { positions: {} };
+            }
+            if (qty <= 0) {
+                delete portfolioData.accounts[acc].positions[symbol];
+            } else {
+                const currentPos = portfolioData.accounts[acc].positions[symbol] || {};
+                const newAvg = (avgPrice !== null) ? avgPrice : (currentPos.avg_price || 0);
+                const now = new Date().toISOString();
+                const addedAt = currentPos.added_at || now;
+                portfolioData.accounts[acc].positions[symbol] = { qty: qty, avg_price: newAvg, added_at: addedAt };
+            }
+
+            renderPortfolio();
+            renderKPI();
+            updateUniverseRowState(symbol);
+
+            // 2. Debounced Save
+            const currentEntry = portfolioData.accounts[acc].positions[symbol];
+            const itemToSave = {
+                symbol,
+                qty,
+                account: acc,
+                avg_price: currentEntry ? currentEntry.avg_price : 0
+            };
+            pendingSaves.push(itemToSave);
+
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                const batch = [...pendingSaves];
+                pendingSaves = [];
+
+                for (const item of batch) {
+                    try {
+                        const res = await fetch('/api/portfolio', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                symbol: item.symbol,
+                                qty: item.qty,
+                                account: item.account,
+                                avg_price: item.avg_price
+                            })
+                        });
+                        if (!res.ok) console.error('Failed to save to server:', item);
+                    } catch (e) {
+                        console.error('Network error during save:', e);
+                    }
+                }
+
+                if (currentPfView === 'trend') {
+                    renderPortfolioTrend();
+                }
+            }, 500);
+        }
+
+        // Helper to check if a symbol is in ANY account or SPECIFIC account
+        function isStockInPortfolio(symbol, onlyCurrent = false) {
+            if (!portfolioData.accounts) return false;
+            if (onlyCurrent) {
+                return !!(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]);
+            }
+            for (const accName in portfolioData.accounts) {
+                if (portfolioData.accounts[accName].positions[symbol]) return true;
+            }
+            return false;
+        }
+
+        // Targeted DOM Update for Performance
+        function updatePortfolioItemOptimistic(symbol, qty) {
+            const item = universeMap[symbol];
+            if (!item) return;
+            const d = item.data;
+            const val = d.price * qty;
+
+            // In multi-account mode, optimistic update of a single row is tricky
+            // because it could be in multiple accounts.
+            // For simplicity, let's just trigger a full renderPortfolio for now
+            // or we could find the specific row if we knew the account.
+            renderPortfolio();
+        }
+
+        function getPortfolioItemHTML(symbol, qty, d, val) {
+            return `
+                    <div class="col-span-5">
+                        <div class="text-gray-300 font-medium whitespace-normal break-all leading-tight">${d.name}</div>
+                        <div class="text-[9px] text-gray-500">${symbol}</div>
+                    </div>
+                    <div class="col-span-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="saveToServer('${symbol}', ${qty - 1})" class="w-5 h-5 bg-[#333] hover:bg-[#555] rounded text-white flex items-center justify-center">-</button>
+                            <input type="number"
+                                class="w-12 bg-transparent text-center text-gray-300 border border-gray-700 rounded text-xs focus:outline-none focus:border-blue-500 py-0.5"
+                                value="${qty}"
+                                onchange="saveToServer('${symbol}', parseInt(this.value) || 0)"
+                                onclick="event.stopPropagation()">
+                            <button onclick="saveToServer('${symbol}', ${qty + 1})" class="w-5 h-5 bg-[#333] hover:bg-[#555] rounded text-white flex items-center justify-center">+</button>
+                        </div>
+                    </div>
+                    <div class="col-span-3 text-right">
+                        <div class="text-white font-medium">₩${val.toLocaleString()}</div>
+                    </div>
+                    <div class="col-span-1 text-right flex justify-end">
+                         <button onclick="saveToServer('${symbol}', 0)" class="text-gray-600 hover:text-red-500 p-1" title="삭제">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                         </button>
+                    </div>
+                `;
+        }
+
+        // Helper to update only the specific row in universe list
+        function updateUniverseRowState(symbol) {
+            const isInCurrent = isStockInPortfolio(symbol, true);
+            const isInOther = !isInCurrent && isStockInPortfolio(symbol, false);
+
+            const listRow = document.getElementById(`universe-row-${symbol}`);
+            if (listRow) {
+                const bgClass = isInCurrent ? 'bg-[#121621] hover:bg-[#1a2030]' : (isInOther ? 'bg-[#0d1017] hover:bg-[#151a26]' : 'hover:bg-[#151515]');
+                listRow.className = `grid grid-cols-12 px-4 py-4 border-b border-[#222] items-center cursor-pointer transition group ${bgClass}`;
+
+                const nameDiv = listRow.querySelector('.font-bold');
+                if (nameDiv) {
+                    const existingBadges = nameDiv.querySelectorAll('.pf-badge');
+                    existingBadges.forEach(b => b.remove());
+
+                    if (isInCurrent) {
+                        nameDiv.insertAdjacentHTML('beforeend', '<span class="pf-badge ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-normal">보유중</span>');
+                    } else if (isInOther) {
+                        nameDiv.insertAdjacentHTML('beforeend', '<span class="pf-badge ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-normal border border-gray-700">타 계좌 보유</span>');
+                    }
+                }
+                const addBtn = listRow.querySelector('button');
+                if (addBtn) {
+                    if (isInCurrent) {
+                        addBtn.classList.add('bg-blue-600', 'text-white');
+                        addBtn.classList.remove('bg-[#222]', 'text-gray-400');
+                    } else {
+                        addBtn.classList.remove('bg-blue-600', 'text-white');
+                        addBtn.classList.add('bg-[#222]', 'text-gray-400');
+                    }
+                }
+            }
+        }
+
+        // -----------------------
+        // Render Logic
+        // -----------------------
+        // Helper: Number Safety
+        function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+
+        // Helper: Annual Yield Priority Logic
+        function annualYieldValue(d) {
+            if (d.dist_warning) return 0;
+            if (d.dist_ttm_yield > 0) return d.dist_ttm_yield;
+            if (d.est_annual_yield > 0) return d.est_annual_yield;
+            return 0;
+        }
+
+
+        function formatVal(num) { return `₩${Math.round(num).toLocaleString()}`; }
+        function getColorClass(val) {
+            if (val > 0) return 'text-up';
+            if (val < 0) return 'text-down';
+            return 'text-gray-500';
+        }
+
+        function renderReturn(val, pricePast) {
+            if (pricePast === 0 || pricePast === undefined) {
+                return `<span class="text-gray-600">-</span>`;
+            }
+            return `<span class="font-bold ${getColorClass(val)}">${val.toFixed(1)}%</span>`;
+        }
+
+        function renderReturnDetail(val, pricePast) {
+            if (pricePast === 0 || pricePast === undefined) {
+                return `<span class="text-gray-600">-</span>`;
+            }
+            return `<span class="font-bold ${getColorClass(val)}">${val.toFixed(2)}%</span>`;
+        }
+
+        // -----------------------
+        // Sort Helpers
+        // -----------------------
+        function toggleSortMenu() {
+            const menu = document.getElementById('sort-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function setSort(key) {
+            currentSort = key;
+            const labels = {
+                'name': '이름순',
+                'yield': '연분배율 높은순',
+                'total_return_1y': '총수익 1Y 높은순',
+                'return_1y': '가격상승 1Y 높은순'
+            };
+            document.getElementById('current-sort-label').innerText = labels[key];
+            toggleSortMenu();
+            renderUniverse();
+        }
+
+        function renderUniverse() {
+            try {
+                // Filter & Sort logic
+                const searchVal = document.getElementById('search-input');
+                const search = searchVal ? searchVal.value.toLowerCase() : "";
+
+                if (!universe || universe.length === 0) {
+                    elUniverseList.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-full text-gray-500 p-8">
+                             <div class="mb-2">📭</div>
+                             <div class="text-sm">표시할 종목 데이터가 없습니다.</div>
+                             <div class="text-xs mt-1">업데이트가 필요하거나 로딩 중일 수 있습니다.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let filtered = universe.filter(item => {
+                    if (!item || !item.data) return false;
+                    const d = item.data;
+                    const nameMatch = (d.name || "").toLowerCase().includes(search) || (item.symbol || "").includes(search);
+                    if (!nameMatch) return false;
+                    return true;
+                });
+
+                filtered.sort((a, b) => {
+                    const da = a.data;
+                    const db = b.data;
+
+                    if (currentSort === 'yield') {
+                        return annualYieldValue(db) - annualYieldValue(da);
+                    } else if (currentSort === 'total_return_1y') {
+                        return (db.total_return_1y || 0) - (da.total_return_1y || 0);
+                    } else if (currentSort === 'return_1y') {
+                        return (db.return_1y || 0) - (da.return_1y || 0);
+                    } else if (currentSort === 'name') {
+                        return (da.name || "").localeCompare(db.name || "");
+                    }
+                    return 0;
+                });
+
+                elUniverseList.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    elUniverseList.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-40 text-gray-500">
+                             <div class="text-sm">검색 결과가 없습니다.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                filtered.forEach(item => {
+                    const d = item.data;
+                    const isSel = currentTicker === item.symbol;
+                    const isInCurrent = isStockInPortfolio(item.symbol, true);
+                    const isInOther = !isInCurrent && isStockInPortfolio(item.symbol, false);
+                    const isInPf = isInCurrent || isInOther;
+
+                    const div = document.createElement('div');
+                    div.onclick = () => openDetail(item.symbol);
+
+                    if (isDetailOpen) {
+                        // COMPACT MODE (3-Column)
+                        let bgClass = '';
+                        if (isSel) {
+                            bgClass = 'bg-[#222] border-l-2 border-l-blue-500';
+                        } else if (isInCurrent) {
+                            bgClass = 'bg-[#151c2f] border-l-2 border-l-blue-600';
+                        } else if (isInOther) {
+                            bgClass = 'bg-[#0d1017] border-l-2 border-l-gray-700';
+                        }
+
+                        div.className = `grid grid-cols-12 px-2 py-3 text-xs border-b border-[#222] items-center cursor-pointer hover:bg-[#1a1a1a] transition ${bgClass}`;
+                        div.innerHTML = `
+                            <div class="col-span-8 pl-1">
+                                <div class="font-bold text-gray-300 whitespace-normal break-all leading-tight">
+                                    ${d.name}
+                                    ${isInPf ? '<span class="text-[9px] text-blue-500 ml-1">●</span>' : ''}
+                                </div>
+                                <div class="text-[9px] text-gray-600">${item.symbol}</div>
+                            </div>
+                            <div class="col-span-4 text-right">
+                                ${renderYieldMini(d)}
+                            </div>
+                        `;
+                    } else {
+                        // WIDE MODE (2-Column)
+                        const bgClass = isInCurrent ? 'bg-[#121621] hover:bg-[#1a2030]' : (isInOther ? 'bg-[#0d1017] hover:bg-[#151a26]' : 'hover:bg-[#151515]');
+
+                        div.className = `grid grid-cols-12 px-4 py-4 border-b border-[#222] items-center cursor-pointer transition group ${bgClass}`;
+                        div.setAttribute('data-symbol', item.symbol);
+                        div.id = `universe-row-${item.symbol}`; // Optimization: ID for O(1) lookup
+
+                        div.innerHTML = `
+                            <!-- Name & Ticker -->
+                            <div class="col-span-4">
+                                <div class="font-bold text-base text-gray-200 whitespace-normal break-all leading-snug group-hover:text-blue-400 transition">
+                                    ${d.name}
+                                    ${isInCurrent ? '<span class="pf-badge ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-normal">보유중</span>' : ''}
+                                    ${isInOther ? '<span class="pf-badge ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-normal border border-gray-700">타 계좌 보유</span>' : ''}
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-gray-500">${item.symbol}</span>
+                                    ${d.dist_warning ? '<span class="badge-warn text-yellow-500 text-[10px] cursor-help border border-yellow-500 rounded px-1" title="FnGuide 데이터 미제공/히스토리 파싱 실패/신규 상장 등" onclick="event.stopPropagation(); alert(\'FnGuide 데이터 미제공/히스토리 파싱 실패/신규 상장 등\')">정보없음</span>' : ''}
+                                </div>
+                            </div>
+
+                            <!-- Price -->
+                            <div class="col-span-2 text-right pr-6">
+                                 <div class="text-sm font-bold text-white">${d.price.toLocaleString()}</div>
+                                 <div class="mt-0.5 leading-none">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
+                            </div>
+
+                            <div class="col-span-4 grid grid-cols-4 gap-2 text-center items-center">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-600">1M</span>
+                                    ${renderReturn(d.return_1m, d.price_1m)}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-600">3M</span>
+                                    ${renderReturn(d.return_3m, d.price_3m)}
+                                </div>
+                                 <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-600">6M</span>
+                                    ${renderReturn(d.return_6m, d.price_6m)}
+                                </div>
+                                 <div class="flex flex-col">
+                                    <span class="text-[10px] text-gray-600">1Y</span>
+                                    ${renderReturn(d.return_1y, d.price_1y)}
+                                </div>
+                            </div>
+
+                            <!-- Yield & Add Btn -->
+                            <div class="col-span-2 text-right flex items-center justify-end gap-3">
+                                <div class="text-right">
+                                    ${renderYieldRight(d)}
+                                </div>
+                                <button onclick="event.stopPropagation(); addToPortfolio('${item.symbol}')" class="w-8 h-8 rounded-full ${isInCurrent ? 'bg-blue-600 text-white' : 'bg-[#222] hover:bg-blue-600 text-gray-400 hover:text-white'} flex items-center justify-center transition" title="${isInCurrent ? '추가 매수' : '포트폴리오 추가'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                    }
+                    elUniverseList.appendChild(div);
+                });
+            } catch (error) {
+                console.error("renderUniverse error:", error);
+                if (elUniverseList) {
+                    elUniverseList.innerHTML = `
+                         <div class="flex flex-col items-center justify-center h-40 text-gray-500 gap-2">
+                             <div class="text-red-400">⚠️ 화면 표시 오류</div>
+                             <div class="text-xs text-center px-4">${error.message}</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function addToPortfolio(symbol) {
+            // Quick Add +10 to current qty or init 1
+            const acc = portfolioData.accounts[currentAccountName] || { positions: {} };
+            const current = (acc.positions[symbol] ? acc.positions[symbol].qty : 0);
+            const toAdd = current === 0 ? 10 : 1;
+            saveToServer(symbol, current + toAdd);
+        }
+
+        function renderYieldMini(d) {
+            if (d.dist_ttm_yield > 0) {
+                return `<div class="text-yield font-bold">${d.dist_ttm_yield.toFixed(2)}%</div>`;
+            } else if (d.est_annual_yield > 0) {
+                return `<div class="text-gray-400 font-bold">${d.est_annual_yield.toFixed(2)}%(E)</div>`;
+            }
+            return `<div class="text-gray-600">-</div>`;
+        }
+
+        function renderYieldRight(d) {
+            if (d.dist_ttm_yield > 0) {
+                return `
+                    <div class="text-sm font-bold text-white">연 ${d.dist_ttm_yield.toFixed(2)}%</div>
+                    <div class="flex items-center justify-end gap-1">
+                        <span class="text-[9px] px-1 py-0.5 rounded bg-green-900 text-green-300 font-bold">TTM</span>
+                    </div>
+                `;
+            } else if (d.est_annual_yield > 0) {
+                return `
+                    <div class="text-sm font-bold text-white">연 ${d.est_annual_yield.toFixed(2)}%</div>
+                     <div class="flex items-center justify-end gap-1">
+                        <span class="text-[9px] px-1 py-0.5 rounded bg-gray-700 text-gray-300 font-bold">추정</span>
+                    </div>
+                `;
+            } else {
+                return `<div class="text-sm text-gray-600">-</div>`;
+            }
+        }
+
+        function renderDetail(symbol) {
+            const item = universe.find(x => x.symbol === symbol);
+            if (!item) return;
+            const d = item.data;
+
+            const container = document.getElementById('detail-content');
+            container.innerHTML = `
+                <!-- Header -->
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 mb-1">
+                         <span class="text-gray-500 text-sm font-mono">${symbol}</span>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white leading-tight mb-2">${d.name}</h2>
+                    <div class="text-4xl font-bold flex items-end gap-2">
+                        ${d.price.toLocaleString()} <span class="text-lg text-gray-500 font-normal mb-1">KRW</span>
+                        <div class="mb-1 ml-2">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0).replace('text-[10px]', 'text-2xl')}</div>
+                    </div>
+                </div>
+
+                <!-- Main Yield Card -->
+                <div class="glass p-6 rounded-2xl text-center mb-6">
+                    <p class="text-gray-400 text-sm uppercase mb-2 font-medium">연 분배율 (Annual Yield)</p>
+                    <div class="flex flex-col items-center justify-center">
+                        ${d.dist_ttm_yield > 0
+                    ? `
+                                <span class="text-5xl font-extrabold text-yield tracking-tight">${d.dist_ttm_yield.toFixed(2)}%</span>
+                                <span class="text-xs text-gray-500 mt-2">TTM (지난 12개월 분배금 합계)</span>
+                              `
+                    : (d.est_annual_yield > 0
+                        ? `
+                                    <span class="text-5xl font-extrabold text-gray-300 tracking-tight">${d.est_annual_yield.toFixed(2)}% <span class="text-lg text-gray-500 font-normal">(추정)</span></span>
+                                    <span class="text-xs text-gray-500 mt-2">(최근 분배금 × 연 분배횟수 기준)</span>
+                                  `
+                        : `<span class="text-4xl text-gray-600">-</span>`
+                    )
+                }
+                    </div>
+                </div>
+
+                <!-- Info Grid: Monthly Cash Flow & Recent Dist -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="glass p-4 rounded-xl">
+                        <span class="text-gray-500 text-xs block mb-1">월 현금흐름 (추정)</span>
+                        <div class="flex items-end gap-1">
+                            <span class="text-2xl font-bold text-white">${d.monthly_income_est > 0 ? d.monthly_income_est.toLocaleString() : '-'}</span>
+                            <span class="text-xs text-gray-600 mb-1">원</span>
+                        </div>
+                        <span class="text-[10px] text-gray-600 block mt-1">연 분배금 기준 월 환산</span>
+                    </div>
+                    <div class="glass p-4 rounded-xl">
+                         <span class="text-gray-500 text-xs block mb-1">최근 1년 총수익률</span>
+                         <span class="text-xl font-bold">${renderReturnDetail(d.total_return_1y, d.price_1y)}</span>
+                         <span class="text-[10px] text-gray-600 block mt-1">가격수익 + 분배수익</span>
+                    </div>
+                </div>
+                
+                <div class="glass p-5 rounded-xl mb-4">
+                     <h3 class="text-gray-400 text-xs uppercase mb-3 border-b border-gray-800 pb-2">최근 1년 주가 추세</h3>
+                     <div class="relative w-full h-64">
+                        <canvas id="priceChart"></canvas>
+                     </div>
+                </div>
+
+                <div class="glass p-5 rounded-xl mb-4">
+                     <h3 class="text-gray-400 text-xs uppercase mb-3 border-b border-gray-800 pb-2">단기 가격 성과 (Price Return)</h3>
+                     <div class="grid grid-cols-4 gap-2 text-center">
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">1개월</span>
+                            ${renderReturnDetail(d.return_1m, d.price_1m)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">3개월</span>
+                            ${renderReturnDetail(d.return_3m, d.price_3m)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">6개월</span>
+                            ${renderReturnDetail(d.return_6m, d.price_6m)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">1년</span>
+                            ${renderReturnDetail(d.return_1y, d.price_1y)}
+                        </div>
+                     </div>
+                </div>
+
+                <div class="glass p-5 rounded-xl mb-4">
+                     <h3 class="text-gray-400 text-xs uppercase mb-3 border-b border-gray-800 pb-2">총 수익률 (Total Return)</h3>
+                     <div class="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">1년</span>
+                            ${renderReturnDetail(d.total_return_1y, d.price_1y)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">3년</span>
+                            ${renderReturnDetail(d.total_return_3y, d.price_3y)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">5년</span>
+                            ${renderReturnDetail(d.total_return_5y, d.price_5y)}
+                        </div>
+                     </div>
+                </div>
+
+                <div class="glass p-5 rounded-xl mb-6">
+                     <h3 class="text-gray-400 text-xs uppercase mb-3 border-b border-gray-800 pb-2">총 수익 CAGR (연평균)</h3>
+                     <div class="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">1년</span>
+                            ${renderReturnDetail(d.total_cagr_1y, d.price_1y)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">3년</span>
+                            ${renderReturnDetail(d.total_cagr_3y, d.price_3y)}
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block mb-1">5년</span>
+                            ${renderReturnDetail(d.total_cagr_5y, d.price_5y)}
+                        </div>
+                     </div>
+                </div>
+
+
+
+                <!-- Portfolio Input -->
+                <div class="pt-6 border-t border-gray-800">
+                    <label class="block text-sm text-gray-400 mb-3">내 보유수량 및 평단가 수정 (${currentAccountName})</label>
+                    <div class="flex gap-3 items-end">
+                        <div class="flex-1">
+                            <label class="block text-[10px] text-gray-500 mb-1">수량 (Qty)</label>
+                            <input type="number" id="d-input-qty" value="${(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]) ? portfolioData.accounts[currentAccountName].positions[symbol].qty : 0}"
+                                class="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500" placeholder="수량">
+                        </div>
+                        <div class="flex-1">
+                             <label class="block text-[10px] text-gray-500 mb-1">평단가 (Avg Price)</label>
+                             <input type="number" id="d-input-avg-price" value="${(portfolioData.accounts[currentAccountName] && portfolioData.accounts[currentAccountName].positions[symbol]) ? (portfolioData.accounts[currentAccountName].positions[symbol].avg_price || 0) : 0}"
+                                class="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500" placeholder="평단가">
+                        </div>
+                        <button onclick="saveDetailQty('${symbol}')" class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-lg font-bold transition py-3 text-lg border border-transparent">저장</button>
+                    </div>
+                </div>
+            `;
+
+            updateChart(d);
+            fetchAndRenderPriceChart(symbol);
+        }
+
+        function saveDetailQty(symbol) {
+            const qty = document.getElementById('d-input-qty').value;
+            const avgPrice = document.getElementById('d-input-avg-price').value;
+            saveToServer(symbol, parseInt(qty) || 0, currentAccountName, parseFloat(avgPrice) || 0);
+        }
+
+        let priceChartInstance = null;
+
+        async function fetchAndRenderPriceChart(ticker) {
+            const ctx = document.getElementById('priceChart');
+            if (!ctx) return;
+
+            if (priceChartInstance) {
+                priceChartInstance.destroy();
+                priceChartInstance = null;
+            }
+
+            try {
+                const res = await fetch('/api/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tickers: [ticker] })
+                });
+                const data = await res.json();
+                const history = data[ticker] || [];
+
+                if (history.length === 0) return;
+
+                history.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                const labels = history.map(h => h.date);
+                const prices = history.map(h => h.price);
+
+                const chartCtx = ctx.getContext('2d');
+                const gradient = chartCtx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+                priceChartInstance = new Chart(chartCtx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '주가 (KRW)',
+                            data: prices,
+                            borderColor: '#3b82f6',
+                            backgroundColor: gradient,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += new Intl.NumberFormat('ko-KR').format(context.parsed.y) + '원';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#666',
+                                    maxTicksLimit: 6
+                                }
+                            },
+                            y: {
+                                display: true,
+                                position: 'right',
+                                grid: { color: '#333' },
+                                ticks: {
+                                    color: '#888',
+                                    callback: function (value) {
+                                        return value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Failed to load history graph", e);
+            }
+        }
+
+        function updateChart(d) {
+            const el = document.getElementById('returnChart');
+            if (!el) return;
+            const ctx = el.getContext('2d');
+            if (chart) chart.destroy();
+            const trColor = d.total_return_1y >= 0 ? '#ef4444' : '#3b82f6';
+            const prColor = d.return_1y >= 0 ? '#fca5a5' : '#93c5fd';
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['수익률 (1 Year)'],
+                    datasets: [
+                        { label: 'TR (총수익)', data: [d.total_return_1y], backgroundColor: trColor, borderRadius: 4 },
+                        { label: 'Price (가격)', data: [d.return_1y], backgroundColor: prColor, borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    plugins: { legend: { position: 'bottom', labels: { color: '#888' } } },
+                    scales: { x: { grid: { color: '#333' }, ticks: { color: '#888' } }, y: { display: false } }
+                }
+            });
+        }
+
+        // -----------------------
+        // Portfolio Sort Logic
+        // -----------------------
+        function setPortfolioSort(key) {
+            if (pfSort.key === key) {
+                // Toggle order
+                pfSort.order = (pfSort.order === 'asc') ? 'desc' : 'asc';
+            } else {
+                // New key
+                pfSort.key = key;
+                // Default order for numbers is desc (high to low), for text is asc
+                if (key === 'name') pfSort.order = 'asc';
+                else pfSort.order = 'desc';
+            }
+            renderPortfolio();
+        }
+
+        function updatePfSortIcons() {
+            // Reset all icons
+            ['name', 'price', 'qty', 'avg_price', 'return', 'value'].forEach(k => {
+                const el = document.getElementById(`pf-sort-icon-${k}`);
+                if (el) el.innerText = '';
+            });
+
+            // Set active icon
+            const activeEl = document.getElementById(`pf-sort-icon-${pfSort.key}`);
+            if (activeEl) {
+                activeEl.innerText = pfSort.order === 'asc' ? '▲' : '▼';
+            }
+        }
+
+
+        // Render Portfolio (Right Panel)
+        function renderPortfolio() {
+            let htmlStr = '';
+            const accounts = portfolioData.accounts || {};
+            const accNames = Object.keys(accounts);
+
+            // Sort accounts: Current first, then alphabetical
+            accNames.sort((a, b) => {
+                if (a === currentAccountName) return -1;
+                if (b === currentAccountName) return 1;
+                return a.localeCompare(b);
+            });
+
+            // Update Account Selector
+            const select = document.getElementById('active-account-select');
+            if (select) {
+                const dropdownNames = [...accNames].sort();
+                select.innerHTML = dropdownNames.map(name => `<option value="${name}" ${name === currentAccountName ? 'selected' : ''}>${name}</option>`).join('');
+            }
+
+            let totalCount = 0;
+
+            accNames.forEach(accName => {
+                const acc = accounts[accName];
+                const positions = acc.positions || {};
+                const symbols = Object.keys(positions);
+                const isActive = accName === currentAccountName;
+
+                // Account Header HTML
+                // Style: Highlight active account with stronger contrast
+                const bgClass = isActive
+                    ? "bg-gradient-to-r from-[#1e293b] to-[#0f172a] border-l-4 border-l-blue-400 shadow-xl"
+                    : "bg-[#222222] border-l-4 border-l-gray-600 hover:bg-[#2a2a2a] cursor-pointer mt-4 mb-1 border-y border-gray-700 shadow-sm";
+
+                const textClass = isActive ? "text-blue-100 font-extrabold" : "text-gray-300 font-bold";
+                const onClick = !isActive ? `onclick="setActiveAccount('${accName.replace(/'/g, "\\'")}')"` : '';
+                const title = !isActive ? "title='Click to select this account'" : '';
+
+                // Calculate Account Totals
+                let accTotalCost = 0;
+                let accTotalVal = 0;
+                symbols.forEach(s => {
+                    const p = positions[s];
+                    const i = universeMap[s];
+                    if (i && i.data) {
+                        accTotalVal += (i.data.price * p.qty);
+                        if (p.avg_price > 0) accTotalCost += (p.avg_price * p.qty);
+                    }
+                });
+                let accReturn = 0;
+                if (accTotalCost > 0) {
+                    accReturn = (accTotalVal - accTotalCost) / accTotalCost * 100;
+                }
+                const accRetClass = accReturn >= 0 ? "text-red-400" : "text-blue-400";
+                const accRetSign = accReturn >= 0 ? "+" : "";
+
+                htmlStr += `
+                    <div class="grid grid-cols-12 px-3 py-3 text-[11px] font-bold items-center mt-2 first:mt-0 sticky top-0 z-10 transition-all ${bgClass}" ${onClick} ${title}>
+                        <div class="col-span-3 flex items-center gap-2 overflow-hidden pl-2">
+                             <span class="${textClass} text-base tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">${accName}</span>
+                             ${isActive ? '<span class="px-1.5 py-0.5 rounded bg-blue-600 text-[8px] text-white font-black uppercase tracking-wider shadow-lg shrink-0">ACTIVE</span>' : ''}
+                        </div>
+                        <div class="col-span-2 text-right pr-4">
+                            <!-- Helper / Empty alignment for Current Price column -->
+                        </div>
+                        <div class="col-span-2 text-center">
+                            <div class="inline-flex items-center justify-center gap-1 bg-black/40 px-2.5 py-1 rounded-full border border-white/5">
+                                <span class="text-white font-black text-sm">${symbols.length}</span>
+                                <span class="text-[8px] font-bold text-gray-500 uppercase">items</span>
+                            </div>
+                        </div>
+                        <div class="col-span-2 text-right pr-2">
+                             <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Total Cost</div>
+                             <div class="text-gray-300 font-black text-[11px] leading-none">₩${accTotalCost.toLocaleString()}</div>
+                        </div>
+                        <div class="col-span-1 text-center">
+                             <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Ret.</div>
+                             <span class="${accRetClass} font-black text-[11px] leading-none">${accRetSign}${accReturn.toFixed(1)}%</span>
+                        </div>
+                        <div class="col-span-1 text-right">
+                             <div class="text-[8px] text-gray-500 font-bold uppercase mb-0.5">Market Value</div>
+                             <div class="text-white font-black text-sm leading-none">₩${accTotalVal.toLocaleString()}</div>
+                        </div>
+                        <div class="col-span-1"></div>
+                    </div>
+                `;
+
+                // Render items ONLY if active (Accordion)
+                if (isActive) {
+                    // Sort Items within Account
+                    const sortedSymbols = Object.keys(positions).sort((a, b) => {
+                        // Prepare comparison values
+                        let valA, valB;
+
+                        const itemA = universeMap[a];
+                        const itemB = universeMap[b];
+                        const posA = positions[a];
+                        const posB = positions[b];
+
+                        // Use fallback if item data missing
+                        const priceA = itemA ? itemA.data.price : 0;
+                        const priceB = itemB ? itemB.data.price : 0;
+                        const nameA = itemA ? itemA.data.name : a;
+                        const nameB = itemB ? itemB.data.name : b;
+
+                        const qtyA = posA.qty;
+                        const qtyB = posB.qty;
+                        const avgA = posA.avg_price || 0;
+                        const avgB = posB.avg_price || 0;
+
+                        const valueA = priceA * qtyA;
+                        const valueB = priceB * qtyB;
+
+                        let retA = 0;
+                        if (avgA > 0) retA = (priceA - avgA) / avgA;
+                        let retB = 0;
+                        if (avgB > 0) retB = (priceB - avgB) / avgB;
+
+                        // Determine sort key
+                        switch (pfSort.key) {
+                            case 'name':
+                                return pfSort.order === 'asc'
+                                    ? nameA.localeCompare(nameB)
+                                    : nameB.localeCompare(nameA);
+                            case 'price':
+                                valA = priceA; valB = priceB; break;
+                            case 'qty':
+                                valA = qtyA; valB = qtyB; break;
+                            case 'avg_price':
+                                valA = avgA; valB = avgB; break;
+                            case 'return':
+                                valA = retA; valB = retB; break;
+                            case 'value':
+                                valA = valueA; valB = valueB; break;
+                            case 'added_at':
+                            default:
+                                // Default LIFO
+                                const timeA = posA.added_at || "";
+                                const timeB = posB.added_at || "";
+                                // LIFO is Time Descending
+                                return timeB.localeCompare(timeA);
+                        }
+
+                        // Numeric Sort
+                        return pfSort.order === 'asc' ? valA - valB : valB - valA;
+                    });
+
+                    sortedSymbols.forEach(symbol => {
+                        const pos = positions[symbol];
+                        const item = universeMap[symbol];
+                        if (!item) return;
+                        const d = item.data;
+                        const val = d.price * pos.qty;
+                        totalCount++;
+
+                        const avgPrice = pos.avg_price || 0;
+                        let gainLossHtml = '';
+                        if (avgPrice > 0) {
+                            const gl = (d.price - avgPrice) / avgPrice * 100;
+                            const glClass = gl >= 0 ? 'text-red-400' : 'text-blue-400';
+                            gainLossHtml = `<span class="text-[9px] ${glClass} font-bold">${gl >= 0 ? '+' : ''}${gl.toFixed(1)}%</span>`;
+                        }
+
+                        // Check for recent addition (within 3 seconds)
+                        const addedTime = new Date(pos.added_at || 0).getTime();
+                        const now = new Date().getTime();
+                        const isNew = (now - addedTime) < 3000;
+                        const rowClass = isNew ? "animate-flash" : "";
+
+                        htmlStr += `
+                        <div class="grid grid-cols-12 px-3 py-2 text-xs border-b border-[#222] items-center hover:bg-[#1a1a1a] ${rowClass}" id="portfolio-item-${accName}-${symbol}">
+                             <div class="col-span-3 pl-2">
+                                <div class="text-gray-300 font-medium text-[11px] whitespace-normal break-words leading-tight" title="${d.name}">${d.name}</div>
+                                <div class="text-[9px] text-gray-500">${symbol}</div>
+                            </div>
+                            <div class="col-span-2 text-right pr-4 text-gray-400 font-medium text-[11px] flex flex-col justify-center h-full">
+                                <div>₩${d.price.toLocaleString()}</div>
+                                <div class="leading-none mt-0.5">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0)}</div>
+                            </div>
+                            <div class="col-span-2 text-center px-1">
+                                <input type="text"
+                                    class="w-full bg-[#111] text-center text-gray-300 border border-gray-700 rounded text-[10px] focus:outline-none focus:border-blue-500 py-1"
+                                    value="${pos.qty.toLocaleString()}"
+                                    onfocus="this.value = this.value.replace(/,/g, '')"
+                                    onblur="if(this.value.trim() === '') return; saveToServer('${symbol}', parseInt(this.value.replace(/,/g,'')) || 0, '${accName}')"
+                                    onkeydown="if(event.key === 'Enter') this.blur()"
+                                    onclick="event.stopPropagation()">
+                            </div>
+                            <div class="col-span-2 text-center px-1">
+                                 <input type="text"
+                                    class="w-full bg-[#111] text-right text-gray-400 border border-gray-800 rounded text-[10px] focus:outline-none focus:border-green-500 py-1 px-1 ${avgPrice <= 0 ? 'input-missing-price' : ''}"
+                                    placeholder="평단"
+                                    value="${avgPrice > 0 ? avgPrice.toLocaleString() : ''}"
+                                    onfocus="this.value = this.value.replace(/,/g, '')"
+                                    onblur="if(this.value.trim() === '') return; saveToServer('${symbol}', ${pos.qty}, '${accName}', parseInt(this.value.replace(/,/g,'')) || 0)"
+                                    onkeydown="if(event.key === 'Enter') this.blur()"
+                                    onclick="event.stopPropagation()">
+                            </div>
+                            <div class="col-span-1 text-center font-bold">
+                                 ${gainLossHtml}
+                            </div>
+                             <div class="col-span-1 text-right overflow-hidden">
+                                <div class="text-white font-medium text-[11px] whitespace-nowrap">₩${val.toLocaleString()}</div>
+                            </div>
+                            <div class="col-span-1 text-right flex justify-end pr-1">
+                                 <button onclick="saveToServer('${symbol}', 0, '${accName}')" class="text-gray-600 hover:text-red-500 p-1" title="삭제">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                    </svg>
+                                 </button>
+                            </div>
+                        </div>
+                    `;
+                    });
+                }
+            });
+
+            elPortfolioList.innerHTML = htmlStr;
+            document.getElementById('pf-count').innerText = totalCount;
+            updatePfSortIcons(); // Update headers
+        }
+
+        function renderKPI() {
+            let totalVal = 0, monthlyIncome = 0, annualIncome = 0, totalImpliedStartVal = 0;
+            let totalDailyChangeVal = 0;
+            const accounts = portfolioData.accounts || {};
+
+            // Filter accounts based on viewMode
+            let targetAccounts = [];
+            if (viewMode === 'current') {
+                if (accounts[currentAccountName]) {
+                    targetAccounts.push(accounts[currentAccountName]);
+                }
+            } else {
+                targetAccounts = Object.values(accounts);
+            }
+
+            targetAccounts.forEach(acc => {
+                const positions = acc.positions || {};
+                Object.keys(positions).forEach(symbol => {
+                    const qty = positions[symbol].qty;
+                    const item = universeMap[symbol];
+                    if (item && qty > 0) {
+                        const d = item.data;
+                        const val = d.price * qty;
+                        totalVal += val;
+                        monthlyIncome += ((num(d.monthly_income_est) || num(d.monthly_income_est_1share)) * qty);
+                        annualIncome += (num(d.income_amount_annual_used) * qty);
+
+                        // Calculate implied start value for accurate portfolio return
+                        // Current = Start * (1 + Return/100) => Start = Current / (1 + Return/100)
+                        const tr = num(d.total_return_1y);
+                        // Avoid division by zero if return is -100% (unlikely but safe)
+                        const divisor = (1 + tr / 100);
+                        if (divisor > 0.0001) {
+                            totalImpliedStartVal += (val / divisor);
+                        }
+
+                        // Daily Change Calculation
+                        if (d.daily_change_value !== undefined) {
+                            totalDailyChangeVal += (d.daily_change_value * qty);
+                        }
+                    }
+                });
+            });
+
+            // Portfolio Return = (End - Start) / Start
+            let pfRet = 0;
+            if (totalImpliedStartVal > 0) {
+                pfRet = (totalVal - totalImpliedStartVal) / totalImpliedStartVal * 100;
+            }
+
+            // Total Daily Change Rate
+            // Base = Current - Change
+            const totalPrevVal = totalVal - totalDailyChangeVal;
+            let totalDailyChangeRate = 0;
+            if (totalPrevVal > 0) {
+                totalDailyChangeRate = (totalDailyChangeVal / totalPrevVal) * 100;
+            }
+
+            document.getElementById('kpi-total-val').innerHTML = `
+                ${formatVal(totalVal)}
+                ${totalDailyChangeVal !== 0 ? `<div class="text-[12px] ${totalDailyChangeVal >= 0 ? 'text-red-400' : 'text-blue-400'} font-bold mt-1">${totalDailyChangeVal > 0 ? '▲' : '▼'} ${formatVal(Math.abs(totalDailyChangeVal))} (${totalDailyChangeRate.toFixed(2)}%)</div>` : ''}
+            `;
+            document.getElementById('kpi-monthly').innerText = formatVal(monthlyIncome);
+            document.getElementById('kpi-annual').innerText = formatVal(annualIncome);
+            const elRet = document.getElementById('kpi-return');
+            elRet.innerText = pfRet.toFixed(2) + '%';
+            elRet.className = `font-bold text-[19px] md:text-[20px] leading-none truncate ${getColorClass(pfRet)}`;
+
+            // Calculate My Personal Return
+            // Need Total Cost. We can calculate it by iterating accounts again or just doing it here.
+            let myTotalCost = 0;
+            let myTotalVal = 0; // Recalculate or reuse totalVal? totalVal is filtered by viewMode.
+            // Let's reuse the iteration logic above if we care about viewMode
+            // The iteration above calculated `totalVal` based on `targetAccounts`.
+            // Let's modify the loop above to also fetch cost.
+
+            // Re-iterate efficiently? No, let's just do a second pass or modify previous loop?
+            // Modifying previous loop is hard via replace_file_content if I don't target it.
+            // Let's just re-iterate targetAccounts locally. list is small.
+            targetAccounts.forEach(acc => {
+                const positions = acc.positions || {};
+                Object.keys(positions).forEach(symbol => {
+                    const qty = positions[symbol].qty;
+                    const pos = positions[symbol];
+                    const item = universeMap[symbol];
+                    if (item && qty > 0) {
+                        const d = item.data;
+                        const val = d.price * qty;
+                        myTotalVal += val;
+                        if (pos.avg_price > 0) {
+                            myTotalCost += (pos.avg_price * qty);
+                        }
+                    }
+                });
+            });
+
+            let myRet = 0;
+            if (myTotalCost > 0) {
+                myRet = (myTotalVal - myTotalCost) / myTotalCost * 100;
+            }
+
+            // New: Render Investment Principal
+            const elMyCost = document.getElementById('kpi-my-cost');
+            if (elMyCost) {
+                elMyCost.innerText = formatVal(myTotalCost);
+            }
+
+            const elMyRet = document.getElementById('kpi-my-return');
+            if (elMyRet) {
+                elMyRet.innerText = (myRet >= 0 ? "+" : "") + myRet.toFixed(2) + '%';
+                elMyRet.className = `font-bold text-[19px] md:text-[20px] leading-none truncate ${myRet >= 0 ? 'text-up' : 'text-down'}`;
+            }
+        }
+
+        // View Mode Actions
+        function setViewMode(mode) {
+            viewMode = mode;
+
+            // UI Update
+            const btnAll = document.getElementById('btn-view-all');
+            const btnCurr = document.getElementById('btn-view-current');
+
+            if (mode === 'all') {
+                btnAll.className = "px-3 py-1 text-[11px] rounded font-bold transition bg-blue-600 text-white shadow shadow-blue-500/20";
+                btnCurr.className = "px-3 py-1 text-[11px] rounded font-bold transition text-gray-500 hover:bg-[#333] hover:text-gray-300";
+            } else {
+                btnAll.className = "px-3 py-1 text-[11px] rounded font-bold transition text-gray-500 hover:bg-[#333] hover:text-gray-300";
+                btnCurr.className = "px-3 py-1 text-[11px] rounded font-bold transition bg-blue-600 text-white shadow shadow-blue-500/20";
+            }
+
+            // Critical: Render Trend Chart First (if visible)
+            const viewTrend = document.getElementById('view-portfolio-trend');
+            if (viewTrend && !viewTrend.classList.contains('hidden')) {
+                try {
+                    // Force a small delay to ensure state/DOM is ready
+                    setTimeout(() => {
+                        renderPortfolioTrend();
+                    }, 10);
+                } catch (e) {
+                    console.error("Error rendering portfolio trend:", e);
+                }
+            }
+
+            try { renderKPI(); } catch (e) { console.error("Error rendering KPI:", e); }
+
+            // If calendar or analysis modal is open, we should re-render them?
+            const calendarModal = document.getElementById('modal-calendar');
+            if (calendarModal && !calendarModal.classList.contains('hidden')) {
+                try { renderCalendar(); } catch (e) { console.error("Error rendering Calendar:", e); }
+            }
+            const analysisModal = document.getElementById('modal-analysis');
+            if (analysisModal && !analysisModal.classList.contains('hidden')) {
+                try { renderSectorStart(); } catch (e) { console.error("Error rendering Analysis:", e); }
+            }
+        }
+
+        // Account Actions (Consolidated)
+        function setActiveAccount(name) {
+            currentAccountName = name;
+            renderUniverse();
+            renderPortfolio();
+            // Sync Detail panel if open
+            if (isDetailOpen && currentTicker) {
+                renderDetail(currentTicker);
+            }
+            // Update other components
+            renderKPI();
+
+            const calendarModal = document.getElementById('modal-calendar');
+            if (calendarModal && !calendarModal.classList.contains('hidden')) {
+                renderCalendar();
+            }
+
+            const analysisModal = document.getElementById('modal-analysis');
+            if (analysisModal && !analysisModal.classList.contains('hidden')) {
+                renderSectorStart(); // Fixed function name
+            }
+
+            if (currentPfView === 'trend') {
+                renderPortfolioTrend();
+            }
+        }
+
+        async function onClickAddAccount() {
+            const name = prompt("새 계좌 이름을 입력하세요:");
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/portfolio/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    await loadPortfolio();
+                    setActiveAccount(name);
+                } else {
+                    const d = await res.json();
+                    alert(d.error || '실패');
+                }
+            } catch (e) { alert('오류 발생'); }
+        }
+
+        async function onClickRenameAccount() {
+            const newName = prompt(`"${currentAccountName}"의 새 이름을 입력하세요: `, currentAccountName);
+            if (!newName || newName === currentAccountName) return;
+
+            try {
+                const res = await fetch('/api/portfolio/accounts/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: currentAccountName, new_name: newName })
+                });
+                if (res.ok) {
+                    await loadPortfolio();
+                    setActiveAccount(newName);
+                } else {
+                    const d = await res.json();
+                    alert(d.error || '실패');
+                }
+            } catch (e) { alert('오류 발생'); }
+        }
+
+        async function onClickDeleteAccount() {
+            if (!confirm(`"${currentAccountName}" 계좌와 계좌 내 모든 종목을 삭제하시겠습니까?`)) return;
+            try {
+                const res = await fetch(`/api/portfolio/accounts?name=${encodeURIComponent(currentAccountName)}`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    await loadPortfolio();
+                    // loadPortfolio will pick a valid account if currentAccountName is null
+                    // But we should explicitly set it if possible
+                    const accounts = Object.keys(portfolioData.accounts || {});
+                    if (accounts.length > 0) setActiveAccount(accounts[0]);
+                    else setActiveAccount("기본 계좌");
+                } else {
+                    const d = await res.json();
+                    alert(d.error || '실패');
+                }
+            } catch (e) { alert('오류 발생'); }
+        }
+
+        // Auto Refresh Logic
+        let autoRefreshInterval = null;
+
+        function toggleAutoRefresh() {
+            const toggle = document.getElementById('auto-refresh-toggle');
+            if (toggle.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        }
+
+        let timerInterval = null;
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (timerInterval) clearInterval(timerInterval);
+
+            console.log("Auto Refresh Started (180s - Full Universe)");
+
+            // Initial Timer Render
+            let timeLeft = 180;
+            const timerEl = document.getElementById('refresh-timer');
+            if (timerEl) timerEl.innerText = timeLeft + 's';
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft < 0) timeLeft = 180;
+                if (timerEl) timerEl.innerText = timeLeft + 's';
+            }, 1000);
+
+            autoRefreshInterval = setInterval(() => {
+                timeLeft = 180; // Reset timer display sync
+                triggerPriceRefresh(true);
+            }, 180000); // 3 minutes for full universe update safety
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            autoRefreshInterval = null;
+            timerInterval = null;
+            const timerEl = document.getElementById('refresh-timer');
+            if (timerEl) timerEl.innerText = '';
+            console.log("Auto Refresh Stopped");
+        }
+
+        // Hook triggerPriceRefresh to handle silent mode
+        // Hook triggerPriceRefresh to handle silent mode
+        // const originalTriggerPriceRefresh = triggerPriceRefresh; // Defined via function hoisting if declared normally, but we are overwriting it.
+        // Actually, just define it cleanly.
+
+        async function triggerPriceRefresh(isSilent = false) {
+            const btn = document.querySelector('button[onclick="triggerPriceRefresh()"]');
+            const originalText = btn ? btn.innerHTML : '';
+
+            if (!isSilent && btn) {
+                btn.innerHTML = '<span>⏳</span>...';
+                btn.disabled = true;
+            }
+
+            try {
+                // Auto refresh now targets FULL UNIVERSE as requested
+                const res = await fetch('/api/system/refresh_prices?full=true', { method: 'POST' });
+                if (res.ok) {
+                    await loadUniverse();
+                    renderUniverse();
+                    renderPortfolio();
+                    if (isDetailOpen && currentTicker) renderDetail(currentTicker);
+                    console.log("Price Refreshed");
+                }
+            } catch (e) {
+                console.error("Auto Refresh Error", e);
+            } finally {
+                if (!isSilent && btn) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // Initialize Auto Refresh on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Default ON
+            startAutoRefresh();
+        });
+
+        function renderPriceChange(rate, val) {
+            // rate is number (%), val is number (won)
+            if (rate === undefined || rate === null) return '';
+            const r = parseFloat(rate);
+            if (isNaN(r)) return '';
+
+            const colorClass = r > 0 ? 'text-up' : (r < 0 ? 'text-down' : 'text-gray-500');
+            const sign = r > 0 ? '▲' : (r < 0 ? '▼' : '-');
+
+            // Format: ▲ 3.47%
+            return `<span class="${colorClass} font-bold text-[10px]">${sign} ${Math.abs(r).toFixed(2)}%</span>`;
+        }
+
+        // -----------------------
+        // View Toggle & Trend Logic
+        // -----------------------
+        function togglePortfolioView(mode) {
+            currentPfView = mode;
+            const btnList = document.getElementById('btn-pf-list');
+            const btnTrend = document.getElementById('btn-pf-trend');
+            const viewTrend = document.getElementById('view-portfolio-trend');
+            // viewList is always visible now, effectively
+
+            if (mode === 'list') {
+                btnList.className = "px-3 py-1 text-[11px] rounded font-bold transition bg-blue-600 text-white shadow shadow-blue-500/20";
+                btnTrend.className = "px-3 py-1 text-[11px] rounded font-bold transition text-gray-500 hover:bg-[#333] hover:text-gray-300";
+                viewTrend.classList.add('hidden');
+                viewTrend.classList.remove('flex');
+            } else {
+                btnTrend.className = "px-3 py-1 text-[11px] rounded font-bold transition bg-blue-600 text-white shadow shadow-blue-500/20";
+                btnList.className = "px-3 py-1 text-[11px] rounded font-bold transition text-gray-500 hover:bg-[#333] hover:text-gray-300";
+                viewTrend.classList.remove('hidden');
+                viewTrend.classList.add('flex');
+                renderPortfolioTrend();
+            }
+        }
+
+        async function renderPortfolioTrend() {
+            // Immediate Feedback: Clear old chart and show loading
+            if (pfChart) {
+                pfChart.destroy();
+                pfChart = null;
+            }
+            document.getElementById('trend-start-val').innerText = '...';
+            document.getElementById('trend-end-val').innerText = '...';
+            document.getElementById('trend-return').innerText = '...';
+
+            // Optimization: Aggregate tickers across all accounts
+            const tickersMap = {}; // ticker -> total qty
+
+            // Filter accounts for Trend
+            let targetAccounts = [];
+            if (viewMode === 'current') {
+                if (portfolioData.accounts && portfolioData.accounts[currentAccountName]) {
+                    targetAccounts.push(portfolioData.accounts[currentAccountName]);
+                }
+            } else {
+                targetAccounts = Object.values(portfolioData.accounts || {});
+            }
+
+            targetAccounts.forEach(acc => {
+                const positions = acc.positions || {};
+                Object.keys(positions).forEach(t => {
+                    const qty = positions[t].qty;
+                    if (qty > 0) tickersMap[t] = (tickersMap[t] || 0) + qty;
+                });
+            });
+            const tickers = Object.keys(tickersMap);
+
+            if (tickers.length === 0) {
+                document.getElementById('trend-start-val').innerText = '-';
+                document.getElementById('trend-end-val').innerText = '-';
+                document.getElementById('trend-return').innerText = '-';
+                return;
+            }
+
+            const missing = tickers.filter(t => !portfolioHistory[t]);
+            if (missing.length > 0) {
+                try {
+                    const res = await fetch('/api/history', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tickers: missing })
+                    });
+                    if (res.ok) {
+                        const newHistory = await res.json();
+                        Object.assign(portfolioHistory, newHistory);
+                    }
+                } catch (e) {
+                    console.error("History fetch error:", e);
+                }
+            }
+
+            // Process Data: Sum(Qty * Price) for each date
+            const dateSet = new Set();
+            Object.values(portfolioHistory).forEach(hist => {
+                hist.forEach(pt => dateSet.add(pt.date));
+            });
+
+            // Force add Today for "Real-time" end value (matches List View)
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            dateSet.add(todayStr);
+
+            let allDates = Array.from(dateSet).sort();
+
+            // Filter Dates: Start from "Closest Trading Day <= 365 Days Ago"
+            // matching loader.py logic (calc_return_1y)
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 365);
+            const cutoffStr = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}-${String(cutoffDate.getDate()).padStart(2, '0')}`;
+
+            // Find start index: closest date <= cutoffStr
+            let startIndex = 0;
+            // Iterate backwards to find the standard "look-back" date
+            for (let i = 0; i < allDates.length; i++) {
+                if (allDates[i] > cutoffStr) {
+                    // This date is AFTER cutoff. The previous one (i-1) is the one we want (<= cutoff).
+                    // If i=0, it means all dates are > cutoff (shouldn't happen with 380 day fetch).
+                    startIndex = Math.max(0, i - 1);
+                    break;
+                }
+                // If exact match
+                if (allDates[i] === cutoffStr) {
+                    startIndex = i;
+                    break;
+                }
+            }
+            // If all dates are <= cutoff (unlikely), startIndex remains 0 or last.
+
+            const dates = allDates.slice(startIndex);
+
+            const dataPoints = [];
+            const priceMap = {}; // ticker -> current price cursor
+
+            // Calculate Total Cost Basis (Constant Line)
+            let totalCostBias = 0;
+            tickers.forEach(t => {
+                const qty = tickersMap[t];
+                // Try to find avg price from targetAccounts
+                targetAccounts.forEach(acc => {
+                    const pos = (acc.positions || {})[t];
+                    if (pos && pos.qty > 0 && pos.avg_price > 0) {
+                        // Note: tickersMap aggregates qty across accounts, but here we iterate accounts.
+                        // Correct logic: Sum (qty * avg_price) for each account's position
+                        // But tickersMap is total qty. 
+                        // Let's recalculate totalCostBias directly from targetAccounts to be safe.
+                    }
+                });
+            });
+
+            // Recalculate Total Cost properly
+            totalCostBias = 0;
+            targetAccounts.forEach(acc => {
+                const positions = acc.positions || {};
+                Object.keys(positions).forEach(t => {
+                    const pos = positions[t];
+                    if (pos.qty > 0 && pos.avg_price > 0) {
+                        totalCostBias += (pos.qty * pos.avg_price);
+                    }
+                });
+            });
+
+            // If cost is 0 (missing data), don't show the line or show 0?
+            // If 0, it might look weird. But let's plot it.
+            const costPoints = new Array(dates.length).fill(totalCostBias);
+
+
+            dates.forEach(d => {
+                let dailyTotal = 0;
+                tickers.forEach(t => {
+                    const qty = tickersMap[t];
+                    const hist = portfolioHistory[t] || [];
+
+                    // Priority: If date is Today, use Live Price from UniverseMap
+                    let usedLivePrice = false;
+                    if (d === todayStr && universeMap[t] && universeMap[t].data && universeMap[t].data.price > 0) {
+                        priceMap[t] = universeMap[t].data.price;
+                        usedLivePrice = true;
+                    }
+
+                    if (!usedLivePrice) {
+                        const entry = hist.find(x => x.date === d);
+                        if (entry) {
+                            priceMap[t] = entry.price;
+                        }
+                    }
+
+                    if (priceMap[t]) {
+                        dailyTotal += (priceMap[t] * qty);
+                    }
+                });
+                dataPoints.push(dailyTotal);
+            });
+
+            // Graph
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+            // Chart already destroyed at start
+
+            // Gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // Blue
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+            pfChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Portfolio Value (1Y)',
+                            data: dataPoints,
+                            borderColor: '#3b82f6',
+                            backgroundColor: gradient,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: true,
+                            tension: 0.1,
+                            order: 2
+                        },
+                        {
+                            label: 'My Average Cost',
+                            data: costPoints,
+                            borderColor: 'rgba(156, 163, 175, 0.8)', // Gray 400ish
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [6, 4], // Dashed Line
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            fill: false,
+                            tension: 0,
+                            order: 1 // Draw on top? Or behind? 1 is top usually? mixed. 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleColor: '#ccc',
+                            bodyColor: '#fff',
+                            callbacks: {
+                                label: function (context) {
+                                    return '₩' + Math.round(context.parsed.y).toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false,
+                            grid: { display: false }
+                        },
+                        y: {
+                            display: false,
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Update Stats
+            if (dataPoints.length > 0) {
+                // Force Consistency: Calculate Start Value based on universeMap (price_1y)
+                // This ensures the Trend Return matches the Detail View Return exactly.
+                let consistentStartVal = 0;
+                let hasConsistentData = true;
+
+                tickers.forEach(t => {
+                    const qty = tickersMap[t];
+                    const item = universeMap[t];
+                    if (item && item.data && item.data.price_1y > 0) {
+                        consistentStartVal += (item.data.price_1y * qty);
+                    } else {
+                        hasConsistentData = false;
+                    }
+                });
+
+                // Default to Graph's own start value if we can't be consistent (missing data)
+                let startVal = dataPoints[0];
+
+                // If we have valid 1Y data for all items, use it to anchor the start
+                if (hasConsistentData && consistentStartVal > 0) {
+                    startVal = consistentStartVal;
+                    // Force the first graph point to match this anchor for visual consistency
+                    if (dataPoints.length > 0) {
+                        dataPoints[0] = startVal;
+                    }
+                }
+
+                const endVal = dataPoints[dataPoints.length - 1]; // This is Live Price (forced above)
+                const ret = startVal > 0 ? ((endVal - startVal) / startVal) * 100 : 0;
+
+                document.getElementById('trend-start-val').innerText = formatVal(startVal);
+                document.getElementById('trend-end-val').innerText = formatVal(endVal);
+
+                const elRet = document.getElementById('trend-return');
+                elRet.innerText = (ret > 0 ? '+' : '') + ret.toFixed(2) + '%';
+                elRet.className = `font-bold ${getColorClass(ret)}`;
+            }
+        }
+
+        // -----------------------
+        // Portfolio Management (Save/Load)
+        // -----------------------
+        const modalManage = document.getElementById('modal-manage');
+        const saveNameInput = document.getElementById('save-name-input');
+        const savedList = document.getElementById('saved-list');
+
+        function openManageModal() {
+            modalManage.classList.remove('hidden');
+            loadPortfolioList();
+        }
+
+        function closeManageModal() {
+            modalManage.classList.add('hidden');
+            saveNameInput.value = '';
+        }
+
+        async function loadPortfolioList() {
+            savedList.innerHTML = '<div class="text-center text-xs text-gray-600 py-2">Loading...</div>';
+            try {
+                const res = await fetch('/api/portfolio/list');
+                const names = await res.json();
+
+                if (names.length === 0) {
+                    savedList.innerHTML = '<div class="text-center text-xs text-gray-600 py-2">No saved portfolios</div>';
+                    return;
+                }
+
+                savedList.innerHTML = '';
+                names.forEach(name => {
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-[#222] p-2 rounded hover:bg-[#2a2a2a] transition group";
+                    // Escape single quotes for use in onclick attribute
+                    const safeName = name.replace(/'/g, "\\'");
+                    row.innerHTML = `
+                        <span class="text-xs font-bold text-gray-300 truncate max-w-[120px]" title="${name}">${name}</span>
+                            <div class="flex gap-1 opacity-60 group-hover:opacity-100 transition items-center">
+                                <button onclick="exportPortfolio('${safeName}', 'csv')" class="text-[9px] px-1 bg-gray-700 text-green-300 rounded" title="Export CSV">CSV</button>
+                                <div class="w-px h-3 bg-gray-600 mx-1"></div>
+                                <button onclick="loadSavedPortfolio('${safeName}')" class="text-blue-400 hover:text-blue-300 text-[10px] font-bold">LOAD</button>
+                                <button onclick="handleDeleteClick(this, '${safeName}')" class="text-red-500 hover:text-red-400 text-[10px]">DEL</button>
+                            </div>
+                    `;
+                    savedList.appendChild(row);
+                });
+            } catch (e) {
+                savedList.innerHTML = '<div class="text-center text-xs text-red-500 py-2">Error loading list</div>';
+            }
+        }
+
+        async function saveCurrentPortfolio() {
+            const name = saveNameInput.value.trim();
+            if (!name) { alert('Please enter a name'); return; }
+
+            try {
+                const res = await fetch('/api/portfolio/save_as', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    saveNameInput.value = '';
+                    loadPortfolioList();
+                } else {
+                    const data = await res.json();
+                    alert('Error: ' + (data.error || 'Failed'));
+                }
+            } catch (e) { alert('Network Error'); }
+        }
+
+        async function loadSavedPortfolio(name) {
+            console.log('Loading portfolio:', name);
+            // Removed confirm to prevent blocking issues
+            // if (!confirm(`Load portfolio "${name}" ? Current unsaved changes will be lost.`)) return;
+            try {
+                const res = await fetch('/api/portfolio/load', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    closeManageModal();
+                    await loadPortfolio();
+                    renderPortfolio();
+                    renderKPI();
+                    if (currentPfView === 'trend') {
+                        // Force refresh trend
+                        portfolioHistory = {}; // clear cache to force re-fetch for new items
+                        renderPortfolioTrend();
+                    }
+                } else {
+                    alert('Load failed');
+                }
+            } catch (e) { alert('Error loading'); }
+        }
+
+        function handleDeleteClick(btn, name) {
+            if (btn.innerText === 'DEL') {
+                btn.innerText = 'SURE?';
+                btn.className = "bg-red-600 text-white text-[10px] px-1 rounded font-bold hover:bg-red-700 transition";
+                // Reset after 3 seconds
+                setTimeout(() => {
+                    if (btn && btn.innerText === 'SURE?') {
+                        btn.innerText = 'DEL';
+                        btn.className = "text-red-500 hover:text-red-400 text-[10px]";
+                    }
+                }, 3000);
+            } else {
+                deleteSavedPortfolio(name);
+            }
+        }
+
+        async function deleteSavedPortfolio(name) {
+            console.log('Deleting portfolio:', name);
+            // Removed confirm to prevent blocking issues
+            // if (!confirm(`Delete "${name}" ? `)) return;
+            try {
+                const res = await fetch('/api/portfolio/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    loadPortfolioList();
+                } else {
+                    alert('Delete failed');
+                }
+            } catch (e) { alert('Error deleting'); }
+        }
+
+        async function clearPortfolio() {
+            if (!confirm('현 활성 포트폴리오의 모든 종목을 삭제하시겠습니까?')) return;
+            try {
+                const res = await fetch('/api/portfolio/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (res.ok) {
+                    portfolioData = await res.json();
+                    renderPortfolio();
+                    renderKPI();
+                    renderUniverse();
+                    if (isDetailOpen) closeDetail();
+                    if (currentPfView === 'trend') {
+                        portfolioHistory = {};
+                        renderPortfolioTrend();
+                    }
+                    // Inform user
+                    alert('포트폴리오가 초기화되었습니다.');
+                } else {
+                    alert('초기화 실패');
+                }
+            } catch (e) { alert('오류 발생: ' + e.message); }
+        }
+
+        // -----------------------
+        // Simulator Logic
+        // -----------------------
+        let simChart = null;
+        let lastSimData = null;
+
+        document.getElementById('sim-reinvest-ratio').addEventListener('input', (e) => {
+            document.getElementById('sim-reinvest-val').innerText = e.target.value + '%';
+        });
+
+        function openSimulator() {
+            document.getElementById('modal-simulator').classList.remove('hidden');
+        }
+
+        function closeSimulator() {
+            document.getElementById('modal-simulator').classList.add('hidden');
+        }
+
+        async function runSimulation() {
+            const params = {
+                initial_principal: parseFloat(document.getElementById('sim-principal').value) || 0,
+                monthly_invest: parseFloat(document.getElementById('sim-monthly').value) || 0,
+                annual_yield: (parseFloat(document.getElementById('sim-yield').value) || 0) / 100,
+                growth_rate: (parseFloat(document.getElementById('sim-growth').value) || 0) / 100,
+                annual_div_growth: (parseFloat(document.getElementById('sim-div-growth').value) || 0) / 100,
+                inflation_rate: (parseFloat(document.getElementById('sim-inflation').value) || 0) / 100,
+                tax_rate: (parseFloat(document.getElementById('sim-tax').value) || 0) / 100,
+                reinvest_ratio: (() => {
+                    const val = document.getElementById('sim-reinvest-ratio').value;
+                    return (val === '' ? 100 : parseFloat(val)) / 100;
+                })(),
+                years: parseInt(document.getElementById('sim-years').value) || 10,
+                target_div: parseFloat(document.getElementById('sim-target').value) || 0
+            };
+
+            const btn = document.querySelector('#modal-simulator button[onclick="runSimulation()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "계산 중...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                const data = await res.json();
+                lastSimData = data;
+
+                renderSimResults(data, params);
+                document.getElementById('btn-sim-csv').disabled = false;
+                document.getElementById('btn-sim-csv').classList.replace('text-gray-300', 'text-white');
+                document.getElementById('btn-sim-csv').classList.replace('bg-gray-700', 'bg-blue-600');
+
+            } catch (e) {
+                alert("Simulation Error: " + e.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function renderSimResults(history, params) {
+            // Update Status
+            const final = history[history.length - 1];
+            if (final) {
+                let statusHtml = `<span class="text-green-400">최종 자산: ${formatVal(final.asset_post)}원</span> | ` +
+                    `<span class="text-orange-400">최종 월배당: ${formatVal(final.monthly_div_post)}원</span>`;
+
+                if (params.inflation_rate > 0) {
+                    statusHtml += `<span class="text-gray-500 text-[10px] ml-2">(실질가치: ${formatVal(final.asset_post_real)}원 / 월 ${formatVal(final.monthly_div_post_real)}원)</span>`;
+                }
+                document.getElementById('sim-status').innerHTML = statusHtml;
+            }
+
+            // Render Table
+            const tbody = document.getElementById('table-sim-body');
+            tbody.innerHTML = '';
+
+            let maxRows = 240;
+
+            history.forEach((row, idx) => {
+                if (idx >= 600) return; // Limit table rows for safety
+
+                // Highlighting
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#2a2a2a] transition";
+
+                // Check target
+                let targetHit = false;
+                if (params.target_div > 0 && row.monthly_div_post >= params.target_div && (!history[idx - 1] || history[idx - 1].monthly_div_post < params.target_div)) {
+                    tr.style.backgroundColor = "rgba(40, 167, 69, 0.2)";
+                    targetHit = true;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-2 border-b border-gray-800">${row.period}</td>
+                <td class="p-2 border-b border-gray-800 text-right">${formatVal(row.asset_post)}</td>
+                <td class="p-2 border-b border-gray-800 text-right text-orange-300">${formatVal(row.monthly_div_post)}</td>
+                <td class="p-2 border-b border-gray-800 text-right text-gray-400">${formatVal(row.reinvest_post)}</td>
+                <td class="p-2 border-b border-gray-800 text-right text-gray-500">${formatVal(row.cash_div_post)}</td>
+                <td class="p-2 border-b border-gray-800 text-right text-gray-600">${formatVal(row.principal_post)}</td>
+                <td class="p-2 border-b border-gray-800 text-right ${row.asset_post - row.principal_post > 0 ? 'text-green-400' : 'text-red-400'}">
+                    ${formatVal(row.asset_post - row.principal_post)}
+                </td>
+                `;
+                tbody.appendChild(tr);
+
+                if (targetHit) {
+                    tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
+            // Render Chart
+            const ctx = document.getElementById('chart-sim-asset').getContext('2d');
+            if (simChart) simChart.destroy();
+
+            const labels = history.map(r => r.period);
+            const dataPrincipal = history.map(r => r.principal_post);
+            const dataDivCum = history.map(r => r.total_div_post);
+            const dataGrowthCum = history.map(r => r.capital_growth_post);
+            const dataMonthlyDiv = history.map(r => r.monthly_div_post);
+
+            // Optional: Real Value Line
+            const dataRealAsset = history.map(r => r.asset_post_real);
+
+            const datasets = [
+                {
+                    label: '월배당금 (우측)',
+                    data: dataMonthlyDiv,
+                    borderColor: '#fb923c', // Orange-400
+                    borderWidth: 2,
+                    yAxisID: 'y1',
+                    pointRadius: 0,
+                    borderDash: [5, 5],
+                    type: 'line',
+                    order: 1
+                },
+                {
+                    label: '주가 수익',
+                    data: dataGrowthCum.map((v, i) => v + dataDivCum[i] + dataPrincipal[i]), // Stacked Manually for Fill?
+                    // Chart.js stacked area works better with raw values if stacked: true
+                    // But here we want areas. Let's use 'fill: "-1"' approach or strict stacking.
+                    // Stacking Setup: Principal (Bottom) -> Div (Middle) -> Growth (Top)
+                    backgroundColor: 'rgba(239, 68, 68, 0.3)', // Red
+                    borderColor: 'transparent',
+                    fill: '-1', // Fill to previous dataset
+                    pointRadius: 0,
+                    order: 3
+                },
+                {
+                    label: '재투자 누적',
+                    data: dataDivCum.map((v, i) => v + dataPrincipal[i]),
+                    backgroundColor: 'rgba(34, 197, 94, 0.3)', // Green
+                    borderColor: 'transparent',
+                    fill: '-1',
+                    pointRadius: 0,
+                    order: 4
+                },
+                {
+                    label: '원금',
+                    data: dataPrincipal,
+                    backgroundColor: 'rgba(59, 130, 246, 0.3)', // Blue
+                    borderColor: '#3b82f6',
+                    fill: 'origin',
+                    pointRadius: 0,
+                    order: 5
+                }
+            ];
+
+            if (params.inflation_rate > 0) {
+                datasets.push({
+                    label: '실질 가치 (물가반영)',
+                    data: dataRealAsset,
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    type: 'line',
+                    order: 2, // Layer on top of area
+                    borderDash: [2, 2]
+                });
+            }
+
+            simChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: '#333' },
+                            ticks: { callback: (v) => v / 10000 + '만' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { display: false },
+                            ticks: { callback: (v) => v / 10000 + '만', color: '#fb923c' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) label += formatVal(context.parsed.y) + '원';
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // -----------------------
+        // Analysis Logic (Sector Pie Chart)
+        // -----------------------
+        let sectorChart = null;
+
+        function openAnalysis() {
+            document.getElementById('modal-analysis').classList.remove('hidden');
+            renderSectorStart();
+        }
+
+        function closeAnalysis() {
+            document.getElementById('modal-analysis').classList.add('hidden');
+        }
+
+        function renderSectorStart() {
+            const ctx = document.getElementById('chart-sector').getContext('2d');
+            if (sectorChart) sectorChart.destroy();
+
+            // 1. Aggregate Value by Sector
+            const sectorMap = {}; // { 'Tech': 1000000, ... }
+            let totalVal = 0;
+
+            const accounts = portfolioData.accounts || {};
+            Object.values(accounts).forEach(acc => {
+                const positions = acc.positions || {};
+                Object.keys(positions).forEach(symbol => {
+                    const qty = positions[symbol].qty;
+                    if (qty <= 0) return;
+
+                    const item = universeMap[symbol];
+                    if (!item) return;
+
+                    const val = (item.data.price || 0) * qty;
+                    let sector = item.data.sector || '기타';
+                    if (!sector.trim()) sector = '기타';
+
+                    if (!sectorMap[sector]) sectorMap[sector] = 0;
+                    sectorMap[sector] += val;
+                    totalVal += val;
+                });
+            });
+
+            if (totalVal === 0) {
+                // Show empty chart or message
+                return;
+            }
+
+            // 2. Prepare Data for Chart
+            const labels = Object.keys(sectorMap);
+            const data = Object.values(sectorMap);
+
+            // Generate Colors
+            const predefinedColors = [
+                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#a855f7'
+            ];
+            const bgColors = labels.map((_, i) => predefinedColors[i % predefinedColors.length]);
+
+            sectorChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: bgColors,
+                        borderWidth: 1,
+                        borderColor: '#111'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.chart._metasets[context.datasetIndex].total;
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                    return ` ${label}: ${percentage} (${formatVal(value)}원)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportSimulationCSV() {
+            if (!lastSimData) return;
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM
+            csvContent += "기간,총자산(세후),월배당(세후),재투자액,현금수취,누적원금,누적자산수익,누적배당수익\n";
+
+            lastSimData.forEach(row => {
+                csvContent += `${row.period},${row.asset_post},${row.monthly_div_post},${row.reinvest_post},${row.cash_div_post},${row.principal_post},${row.capital_growth_post},${row.total_div_post} \n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "dividend_simulation.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Export/Import Logic
+        function exportPortfolio(name, fmt = 'json') {
+            const url = `/api/portfolio/export?name=${encodeURIComponent(name)}&format=${fmt}`;
+            window.location.href = url;
+        }
+
+        async function importPortfolioFile(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Show loading state?
+                const btn = input.nextElementSibling;
+                const originalText = btn.innerHTML;
+                btn.innerText = 'Uploading...';
+                btn.disabled = true;
+
+                const res = await fetch('/api/portfolio/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+
+                if (res.ok) {
+                    alert(`성공적으로 불러왔습니다: ${data.name} (${data.count} items)`);
+                    loadPortfolioList(); // Refresh saved list
+
+                    // Refresh Active View
+                    await loadPortfolio();
+                    renderPortfolio();
+                    renderKPI();
+                    renderUniverse();
+                } else {
+                    alert('Import failed: ' + (data.error || 'Unknown Error'));
+                }
+            } catch (e) {
+                alert('Upload Error');
+                // Reset button if error
+                const btn = input.nextElementSibling;
+                if (btn) btn.disabled = false;
+            }
+            input.value = ''; // Reset
+        }
+
+        // -----------------------
+        // Calendar Logic
+        // -----------------------
+        let calendarChart = null;
+
+        function openCalendar() {
+            document.getElementById('modal-calendar').classList.remove('hidden');
+            renderCalendar();
+        }
+
+        function closeCalendar() {
+            document.getElementById('modal-calendar').classList.add('hidden');
+        }
+
+        function renderCalendar() {
+            const ctx = document.getElementById('chart-calendar').getContext('2d');
+            if (calendarChart) calendarChart.destroy();
+
+            // Initialize 12 months (Jan=0, Dec=11)
+            const monthlySum = new Array(12).fill(0);
+
+            // Logic: Scan all accounts in Portfolio
+            const accounts = portfolioData.accounts || {};
+
+            // Logic: Scan accounts based on viewMode
+            let targetAccounts = [];
+            if (viewMode === 'current') {
+                if (accounts[currentAccountName]) {
+                    targetAccounts.push(accounts[currentAccountName]);
+                }
+            } else {
+                targetAccounts = Object.values(accounts);
+            }
+
+            targetAccounts.forEach(acc => {
+                const positions = acc.positions || {};
+                Object.keys(positions).forEach(symbol => {
+                    const qty = positions[symbol].qty;
+                    if (qty <= 0) return;
+                    const item = universeMap[symbol];
+                    if (!item) return;
+
+                    const dData = item.data;
+                    const history = dData.dist_history || [];
+
+                    // Strategy 1: Use History (Last 12 Months)
+                    let useHistory = false;
+                    if (history && history.length > 0) {
+                        const lastDate = new Date(history[0].date);
+                        const oneYearAgo = new Date();
+                        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+                        if (lastDate > oneYearAgo) {
+                            useHistory = true;
+                            // Sum up amounts per month for the last 12 months valid data
+                            // Only count payments that happened within the last 365 days?
+                            // OR simply count distinct months present in the last year's history
+                            history.forEach(h => {
+                                const d = new Date(h.date);
+                                if (d > oneYearAgo) {
+                                    monthlySum[d.getMonth()] += h.amount * qty;
+                                }
+                            });
+                        }
+                    }
+
+                    // Strategy 2: Estimate based on Base Date & Frequency
+                    if (!useHistory && dData.dist_base_date && dData.dist_freq_1y > 0) {
+                        // Try parsing date
+                        let year, month, day;
+                        // Format: YYYY-MM-DD or YYYY.MM.DD
+                        const parts = dData.dist_base_date.replace(/\./g, '-').split('-');
+                        if (parts.length === 3) {
+                            year = parseInt(parts[0]);
+                            month = parseInt(parts[1]) - 1; // 0-indexed
+                            day = parseInt(parts[2]);
+
+                            const freq = dData.dist_freq_1y;
+                            let amt = dData.dist_amount_recent || 0;
+                            if (amt === 0 && dData.est_annual_amount > 0) {
+                                amt = dData.est_annual_amount / freq;
+                            }
+
+                            if (amt > 0 && !isNaN(month)) {
+                                if (freq >= 12) {
+                                    // Monthly
+                                    for (let m = 0; m < 12; m++) monthlySum[m] += amt * qty;
+                                } else if (freq === 4) {
+                                    // Quarterly
+                                    for (let i = 0; i < 4; i++) {
+                                        monthlySum[(month + i * 3) % 12] += amt * qty;
+                                    }
+                                } else if (freq === 1) {
+                                    // Annual
+                                    monthlySum[month] += amt * qty;
+                                } else {
+                                    // Other
+                                    monthlySum[month] += amt * qty;
+                                    if (freq === 2) monthlySum[(month + 6) % 12] += amt * qty;
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+            const labels = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+
+            calendarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '예상 월 배당금',
+                        data: monthlySum,
+                        backgroundColor: (ctx) => {
+                            const v = ctx.raw;
+                            return v > 0 ? 'rgba(168, 85, 247, 0.6)' : 'rgba(55, 65, 81, 0.3)'; // Purple-500
+                        },
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#333' },
+                            ticks: { callback: (v) => formatVal(v), color: '#999', font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#ccc', font: { size: 11 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return ` 예상 배당: ${formatVal(context.parsed.y)} 원`;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `연간 예상 배당금 합계: ${formatVal(monthlySum.reduce((a, b) => a + b, 0))} 원`,
+                            color: '#e5e7eb',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('search-input').addEventListener('input', renderUniverse);
+
+        // document.getElementById('sort-select').addEventListener('change', renderUniverse); // Removed
+
+
+    </script>
+</body>
+
+</html>

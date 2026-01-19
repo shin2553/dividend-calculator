@@ -3078,7 +3078,7 @@
                     // Escape single quotes for use in onclick attribute
                     const safeName = name.replace(/'/g, "\\'");
                     row.innerHTML = `
-                        <span class="text-xs font-bold text-gray-300 truncate max-w-[120px]" title="${name}">${name}</span>
+                        <span class="text-xs font-bold text-gray-300 truncate flex-1 min-w-0 mr-2" title="${name}">${name}</span>
                             <div class="flex gap-1 opacity-60 group-hover:opacity-100 transition items-center">
                                 <button onclick="exportPortfolio('${safeName}', 'csv')" class="text-[9px] px-1 bg-gray-700 text-green-300 rounded" title="Export CSV">CSV</button>
                                 <div class="w-px h-3 bg-gray-600 mx-1"></div>

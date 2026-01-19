@@ -7,7 +7,7 @@ import re
 # CONFIGURATION
 # ==========================================
 PROJECT_NAME = "KR_ETF_Dividend_Insight"
-VERSION = "v1.1.3"
+VERSION = "v1.1.4"
 TARGET_HTML = 'kr_etf_investor/templates/index.html'
 # ==========================================
 
@@ -73,6 +73,7 @@ def build():
         '--collect-all=pandas',
         '--collect-all=pystray',
         '--collect-all=PIL',
+        '--collect-all=aiohttp',
         '--icon=app.ico',
         '--hidden-import=jinja2',
         '--hidden-import=flask',

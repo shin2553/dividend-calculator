@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KR ETF Dividend Insight v1.1.3</title>
+    <title>KR ETF Dividend Insight v1.1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -164,7 +164,7 @@
         <div class="flex items-center">
             <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">KR
                 ETF Dividend Insight</h1>
-            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.3</span>
+            <span class="text-xs font-bold text-gray-400 ml-2 self-end mb-1">v1.1.4</span>
             <div class="tooltip-container">
                 <button onclick="openAbout()" class="ml-2 p-1 text-gray-400 hover:text-blue-400 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -673,7 +673,7 @@
             </div>
 
             <h2 class="text-3xl font-black text-white mb-2 tracking-tight">KR ETF Dividend Insight</h2>
-            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.3 (Stable)</p>
+            <p class="text-blue-400 text-sm font-black mb-6 tracking-[0.2em] uppercase">Version 1.1.4 (Stable)</p>
 
             <div class="space-y-4 text-base text-gray-400 mb-8 px-4">
                 <div class="flex justify-between border-b border-gray-800 pb-3">
@@ -1702,7 +1702,7 @@
                             const trend = [...item.data.trend_1d];
                             if (item.data.price) trend.push(item.data.price);
 
-                            drawSparkline(canvas, trend, color, baseline);
+                            drawSparkline(canvas, trend, color, baseline, getMarketProgress());
                         }
                     });
                 });
@@ -1756,7 +1756,36 @@
             }
         }
 
-        function drawSparkline(canvas, data, color, baseline = null) {
+        function getMarketProgress() {
+            const now = new Date();
+            // Convert to KST (UTC+9) logic if server returns UTC, but here JS runs in browser.
+            // Assuming user is in KR or browser handles timezone. 
+            // Ideally we check KST time.
+            // Simple approach: Use local time if we assume user is in Korea.
+            // Or construct KST date object.
+
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const kstOffset = 9 * 60 * 60 * 1000;
+            const kst = new Date(utc + kstOffset);
+
+            const day = kst.getDay();
+            // Weekend check (Sat=6, Sun=0)
+            if (day === 0 || day === 6) return 1.0;
+
+            const h = kst.getHours();
+            const m = kst.getMinutes();
+            const currentMin = h * 60 + m;
+
+            const startMin = 9 * 60;        // 09:00
+            const endMin = 15 * 60 + 30;    // 15:30
+
+            if (currentMin < startMin) return 0.0;
+            if (currentMin > endMin) return 1.0;
+
+            return (currentMin - startMin) / (endMin - startMin);
+        }
+
+        function drawSparkline(canvas, data, color, baseline = null, progress = 1.0) {
             try {
                 const ctx = canvas.getContext('2d');
                 const w = canvas.width;
@@ -1773,7 +1802,7 @@
 
                 const getY = (val) => h - ((val - min) / range) * (h - 4) - 2;
 
-                // Draw Baseline (Dashed)
+                // Draw Baseline (Dashed) - Full Width
                 if (baseline !== null) {
                     const baselineY = getY(baseline);
                     ctx.beginPath();
@@ -1786,8 +1815,15 @@
                     ctx.setLineDash([]); // Reset dash
                 }
 
+                // If no progress, don't draw chart
+                if (progress <= 0 || data.length === 0) return;
+
+                // Scale X based on progress
+                // Effective Width = w * progress
+                const effW = w * progress;
+
                 const points = data.map((val, i) => ({
-                    x: (i / (data.length - 1)) * w,
+                    x: (i / (data.length - 1)) * effW,
                     y: getY(val)
                 }));
 
@@ -1801,7 +1837,10 @@
                 ctx.stroke();
 
                 // Gradient Fill
-                ctx.lineTo(w, h);
+                // Close path down to y=h but only up to current x
+                const lastX = points[points.length - 1].x;
+
+                ctx.lineTo(lastX, h);
                 ctx.lineTo(0, h);
                 ctx.closePath();
                 const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -1828,7 +1867,7 @@
                     <div class="text-[28px] font-bold flex items-center gap-2">
                         ${d.price.toLocaleString()} <span class="text-base text-gray-500 font-normal mt-1">KRW</span>
                         <div class="ml-2">${renderPriceChange(d.daily_change_rate || 0, d.daily_change_value || 0).replace('text-[10px]', 'text-[16px]')}</div>
-                        <canvas id="detail-sparkline" width="60" height="26" class="ml-2 opacity-90"></canvas>
+                        <canvas id="detail-sparkline" width="90" height="26" class="ml-2 opacity-90"></canvas>
                     </div>
                 </div>
 
@@ -1963,7 +2002,7 @@
                 const baseline = (d.price || 0) - (d.daily_change_value || 0);
                 const trend = [...d.trend_1d];
                 if (d.price) trend.push(d.price);
-                drawSparkline(detailCanvas, trend, color, baseline);
+                drawSparkline(detailCanvas, trend, color, baseline, getMarketProgress());
             }
         }
 
@@ -3143,6 +3182,8 @@
                 });
                 if (res.ok) {
                     portfolioData = await res.json();
+                    // Reset active account to default as backend resets it to "기본 계좌"
+                    currentAccountName = "기본 계좌";
                     renderPortfolio();
                     renderKPI();
                     renderUniverse();

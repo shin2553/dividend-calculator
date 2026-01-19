@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.1.4 (2026-01-19) - Portfolio Reset Policy & Sparkline Enhancement
+- **Portfolio Reset Improvement**: 포트폴리오 초기화 시 기존 종목만 삭제되는 것이 아니라, 모든 커스텀 계좌가 삭제되고 '기본 계좌'만 남는 완전 초기화 로직을 적용했습니다.
+- **Sparkline Visualization**:
+    - **Time-Scaled Width**: 오늘 장 운영 시간(09:00~15:30) 대비 진행률만큼만 그래프가 그려지며, 남은 시간은 점선으로 표시하여 직관성을 높였습니다.
+    - **Detail View Enhancement**: 상세 화면의 스파크라인 너비를 1.5배 확대하여 추세 흐름을 더 명확하게 확인할 수 있습니다.
+- **Dependency Update**: `aiohttp` 라이브러리 누락으로 인한 실행 오류를 수정했습니다.
+
 ## v1.1.3 (2026-01-18) - UI Layout & Typography Patch
 - **Badge Style Fix (Wrapping)**: 종목명 옆의 '보유중', '타 계좌 보유' 배지가 줄바꿈 현상이 발생하던 문제를 해결했습니다. (Whitespace-NoWrap 적용)
 - **Portfolio Footer Compact**: 포트폴리오 목록 하단의 요약 정보(종목 수 등)와 초기화 버튼, 개발자 크레딧 영역을 **한 줄로 통합**하여 불필요한 수직 공간 낭비를 제거했습니다.

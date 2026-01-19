@@ -148,10 +148,10 @@ class PortfolioStorage:
         return data, success
 
     def clear(self):
-        """Clear all active positions across all accounts."""
+        """Clear all active positions across all accounts and reset to default."""
         data = self.load()
-        for acc in data['accounts']:
-            data['accounts'][acc]['positions'] = {}
+        # Reset entire accounts structure to default
+        data['accounts'] = {self.DEFAULT_ACCOUNT: {"positions": {}}}
         success = self.save(data)
         return data, success
 

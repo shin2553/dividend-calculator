@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 
 APP_NAME = "KR ETF Dividend Insight"
-VERSION = "1.1.3"
+VERSION = "1.1.4"
 AUTHOR = "SHIN YONG HUI"
 
 # Ensure root directory is in sys.path to find 'services'

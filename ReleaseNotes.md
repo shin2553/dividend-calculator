@@ -1,5 +1,10 @@
 # Release Notes
 
+## v1.1.5 (2026-01-21) - Automated ETF Discovery & Discovery Fix
+- **Automated ETF Discovery**: 네이버 증권의 전체 ETF 리스트 API를 연동하여 상장된 모든 ETF(~1,060개)를 자동으로 감지하고 수집합니다. 이제 신규 상장 종목이 나올 때마다 코드를 수정할 필요가 없습니다.
+- **Strict ETF Filtering**: 유니버스 데이터 수집 시 일반 주식(예: 삼성전자)이 포함되지 않도록 네이버 ETF 리스트와 대조하는 엄격한 필터링 로직을 적용했습니다.
+- **Discovery Pulse**: 포트폴리오에 새로운 티커가 추가될 때 실시간으로 시장을 재탐색하여 신규 종목 정보를 즉시 확보할 수 있습니다.
+
 ## v1.1.4 (2026-01-19) - Portfolio Reset Policy & Sparkline Enhancement
 - **Portfolio Reset Improvement**: 포트폴리오 초기화 시 기존 종목만 삭제되는 것이 아니라, 모든 커스텀 계좌가 삭제되고 '기본 계좌'만 남는 완전 초기화 로직을 적용했습니다.
 - **Sparkline Visualization**:

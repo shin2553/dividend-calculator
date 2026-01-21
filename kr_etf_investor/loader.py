@@ -182,6 +182,28 @@ def _extract_history_from_html_tables(html):
     return rows
 
 # =========================
+# Discovery: Naver ETF List API
+# =========================
+async def fetch_naver_etf_list(session):
+    """
+    Get full list of ETFs from Naver Finance API.
+    Returns: { ticker: name, ... }
+    """
+    url = "https://finance.naver.com/api/sise/etfItemList.nhn"
+    try:
+        async with session.get(url, timeout=10) as r:
+            if r.status == 200:
+                # Naver API might return application/x-javascript or text/plain with euc-kr
+                # We use r.text() to get the raw content and then parse it manually or let json.loads handle it
+                text = await r.text()
+                data = json.loads(text)
+                items = data.get('result', {}).get('etfItemList', [])
+                return {item['itemcode']: item['itemname'] for item in items if item.get('itemcode')}
+    except Exception as e:
+        print(f"[Discovery] Failed to fetch Naver ETF list: {e}")
+    return {}
+
+# =========================
 # Async Fetchers
 # =========================
 async def fetch_naver_etf_dividend_history_async(session, ticker):
@@ -452,7 +474,32 @@ async def get_dividend_info_async(session, ticker, current_price, manual_data):
     naver_info = results[1] 
     naver_hist_raw = results[2]
     intraday_data = results[3]
-    
+
+    # If naver_info (from ETF API) is empty or missing name/price, it might be a regular stock or new listing
+    # Fetch stock basic as fallback for price/name
+    if not naver_info.get('closePrice') or not naver_info.get('name'):
+        stock_basic = await fetch_naver_stock_basic_async(session, ticker)
+        if stock_basic:
+            # Normalize stock_basic fields to match naver_info structure
+            if not naver_info: naver_info = {}
+            if not naver_info.get('name'): naver_info['name'] = stock_basic.get('stockName', '')
+            if not naver_info.get('closePrice'): 
+                naver_info['closePrice'] = _safe_int(_clean_num(stock_basic.get('closePrice', '0')))
+            
+            # Normalize change info
+            if 'fluctuationRate' not in naver_info:
+                naver_info['fluctuationRate'] = float(stock_basic.get('fluctuationsRatio', 0) or 0)
+            if 'compareToPreviousClosePrice' not in naver_info:
+                val = _safe_int(_clean_num(stock_basic.get('compareToPreviousClosePrice', '0') or '0'))
+                # Handle sign from compareToPreviousPrice.name
+                status_name = stock_basic.get('compareToPreviousPrice', {}).get('name', '')
+                if status_name in ['FALLING', 'SHOCK', 'LOWER_LIMIT']: val = -abs(val)
+                elif status_name in ['RISING', 'UPPER_LIMIT']: val = abs(val)
+                naver_info['compareToPreviousClosePrice'] = val
+
+            if 'sector' not in naver_info or naver_info['sector'] == 'Etc':
+                naver_info['sector'] = stock_basic.get('industryCodeName', 'Etc')
+
     # Extract Daily Change info
     # Priority: fluctuationRate (%), compareToPreviousClosePrice (Value)
     daily_change_rate = naver_info.get('fluctuationRate', 0.0)
@@ -676,13 +723,50 @@ def calc_return_pct(now_price, past_price):
 # =========================
 async def process_tickers_async(tickers, master_df, manual_data, progress_callback, stop_event):
     results = {}
-    total = len(tickers)
     conn = aiohttp.TCPConnector(limit=MAX_Async_CONCURRENCY)
-    timeout = aiohttp.ClientTimeout(total=30)
+    timeout = aiohttp.ClientTimeout(total=60) # Increased timeout for full discovery
     
     async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
+        # 1. Fetch Definitive ETF List from Naver (Direct Discovery)
+        if progress_callback:
+            progress_callback("Discovering All Listed ETFs (Naver API)...", 5)
+        naver_etf_map = await fetch_naver_etf_list(session)
+        
+        # 2. Automated Discovery & Filtering
+        # Discovery triggers if:
+        # a) It's a full update (many/no tickers)
+        # b) Any input ticker is NOT found in the current master_df (meaning it might be a new listing)
+        input_set = set(tickers)
+        known_set = set(master_df.index) if not master_df.empty else set()
+        missing_from_master = input_set - known_set
+        
+        is_full_update = (len(tickers) > 50 or not tickers or missing_from_master)
+        
+        if is_full_update and naver_etf_map:
+            # Discovery: Add any tickers from Naver that weren't in the input list
+            discovery_set = set(naver_etf_map.keys())
+            new_discoveries = discovery_set - input_set
+            
+            if new_discoveries:
+                print(f"[Discovery] Found {len(new_discoveries)} new ETFs from Naver list.")
+                tickers = list(input_set | discovery_set) # Merge
+        
+        valid_tickers = []
+        for t in tickers:
+            if t in naver_etf_map:
+                valid_tickers.append(t)
+            else:
+                # Log or handle strictly: only process IF it's in the Naver ETF list
+                # This removes things like "005930" (Samsung) which is a stock.
+                print(f"[Filter] Skipping non-ETF ticker: {t}")
+        
+        if not valid_tickers:
+            print("[loader] No valid ETFs to process.")
+            return {}
+
+        total = len(valid_tickers)
         tasks = []
-        for ticker in tickers:
+        for ticker in valid_tickers:
             tasks.append(process_single_ticker(session, ticker, master_df, manual_data))
             
         # Run
@@ -705,14 +789,20 @@ async def process_tickers_async(tickers, master_df, manual_data, progress_callba
 
 async def process_single_ticker(session, ticker, master_df, manual_data):
     try:
-        row = master_df.loc[ticker]
-        price_now = int(row["종가"])
-        price_1m = int(row["종가_1m"]) if pd.notna(row.get("종가_1m")) else 0
-        price_3m = int(row["종가_3m"]) if pd.notna(row.get("종가_3m")) else 0
-        price_6m = int(row["종가_6m"]) if pd.notna(row.get("종가_6m")) else 0
-        price_1y = int(row["종가_1y"]) if pd.notna(row.get("종가_1y")) else 0
-        price_3y = int(row["종가_3y"]) if pd.notna(row.get("종가_3y")) else 0
-        price_5y = int(row["종가_5y"]) if pd.notna(row.get("종가_5y")) else 0
+        # Default prices to 0 if ticker not found in master_df (e.g. new listing or regular stock)
+        if ticker in master_df.index:
+            row = master_df.loc[ticker]
+            price_now = int(row["종가"])
+            price_1m = int(row["종가_1m"]) if pd.notna(row.get("종가_1m")) else 0
+            price_3m = int(row["종가_3m"]) if pd.notna(row.get("종가_3m")) else 0
+            price_6m = int(row["종가_6m"]) if pd.notna(row.get("종가_6m")) else 0
+            price_1y = int(row["종가_1y"]) if pd.notna(row.get("종가_1y")) else 0
+            price_3y = int(row["종가_3y"]) if pd.notna(row.get("종가_3y")) else 0
+            price_5y = int(row["종가_5y"]) if pd.notna(row.get("종가_5y")) else 0
+        else:
+            # Not in KRX ETF list, use defaults and rely on Naver fallback
+            price_now = 0
+            price_1m = price_3m = price_6m = price_1y = price_3y = price_5y = 0
 
         # Async Data Fetch
         div = await get_dividend_info_async(session, ticker, price_now, manual_data)
@@ -927,8 +1017,16 @@ def load_data(progress_callback=None, target_tickers=None, stop_event=None):
     tickers = master.index.tolist()
 
     if target_tickers:
-        tickers = [t for t in tickers if t in target_tickers]
-        print(f"[INFO] Filtering: {len(tickers)} tickers")
+        # For targeted updates, we combine KRX list + target_tickers
+        # process_tickers_async will then verify/expand as needed.
+        tickers_set = set(tickers)
+        for t in target_tickers:
+            if t not in tickers_set:
+                tickers.append(t)
+        
+        # Filter to only the targets for this specific run
+        tickers = [t for t in target_tickers if t] 
+        print(f"[INFO] Targeted Refresh: {len(tickers)} tickers")
 
     total = len(tickers)
     
